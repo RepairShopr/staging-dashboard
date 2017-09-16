@@ -1,24 +1,10 @@
-# README
+# Staging Dashboard
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Just a basic rails app, do rails stuff like rake db:migrate and push to heroku
 
-Things you may want to cover:
+Go in and add your servers
 
-* Ruby version
+Then you can do stuff like;
 
-* System dependencies
+POST "/api/deploy_log" with some params like server_git_remote, git_branch, git_user, git_commit_message 
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...

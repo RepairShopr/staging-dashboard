@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170916145939) do
+ActiveRecord::Schema.define(version: 20170916150411) do
 
   create_table "server_deploys", force: :cascade do |t|
     t.integer "server_id"
@@ -19,6 +19,7 @@ ActiveRecord::Schema.define(version: 20170916145939) do
     t.string "git_user"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "git_commit_message"
   end
 
   create_table "servers", force: :cascade do |t|
