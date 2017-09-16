@@ -35,5 +35,10 @@
   <%= @server.slack_channel %>
 </p>
 
+<p>
+  <strong>Git Remote:</strong>
+  <%= @server.git_remote %>
+</p>
+
 <%= link_to 'Edit', edit_server_path(@server) %> |
 <%= link_to 'Back', servers_path %>
