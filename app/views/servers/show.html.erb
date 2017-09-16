@@ -1,0 +1,39 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @server.name %>
+</p>
+
+<p>
+  <strong>Description:</strong>
+  <%= @server.description %>
+</p>
+
+<p>
+  <strong>Logo url:</strong>
+  <%= @server.logo_url %>
+</p>
+
+<p>
+  <strong>Status:</strong>
+  <%= @server.status %>
+</p>
+
+<p>
+  <strong>Reserved until:</strong>
+  <%= @server.reserved_until %>
+</p>
+
+<p>
+  <strong>Reserved for:</strong>
+  <%= @server.reserved_for %>
+</p>
+
+<p>
+  <strong>Slack channel:</strong>
+  <%= @server.slack_channel %>
+</p>
+
+<%= link_to 'Edit', edit_server_path(@server) %> |
+<%= link_to 'Back', servers_path %>

@@ -1,0 +1,19 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  description: MyString
+  logo_url: MyString
+  status: MyString
+  reserved_until: 2017-09-16 07:29:25
+  reserved_for: MyString
+  slack_channel: MyString
+
+two:
+  name: MyString
+  description: MyString
+  logo_url: MyString
+  status: MyString
+  reserved_until: 2017-09-16 07:29:25
+  reserved_for: MyString
+  slack_channel: MyString
