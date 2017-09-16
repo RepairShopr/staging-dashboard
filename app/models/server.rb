@@ -1,4 +1,5 @@
 class Server < ApplicationRecord
+  has_many :deploys, class_name: "ServerDeploy"
 end
 
 #------------------------------------------------------------------------------
