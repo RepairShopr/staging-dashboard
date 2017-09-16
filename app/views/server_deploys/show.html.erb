@@ -1,0 +1,24 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Server:</strong>
+  <%= @server_deploy.server_id %>
+</p>
+
+<p>
+  <strong>Git branch:</strong>
+  <%= @server_deploy.git_branch %>
+</p>
+
+<p>
+  <strong>Commit hash:</strong>
+  <%= @server_deploy.commit_hash %>
+</p>
+
+<p>
+  <strong>Git user:</strong>
+  <%= @server_deploy.git_user %>
+</p>
+
+<%= link_to 'Edit', edit_server_deploy_path(@server_deploy) %> |
+<%= link_to 'Back', server_deploys_path %>

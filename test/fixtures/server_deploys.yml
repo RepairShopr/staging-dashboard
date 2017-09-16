@@ -1,0 +1,28 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  server_id: 1
+  git_branch: MyString
+  commit_hash: MyString
+  git_user: MyString
+
+two:
+  server_id: 1
+  git_branch: MyString
+  commit_hash: MyString
+  git_user: MyString
+
+#------------------------------------------------------------------------------
+# ServerDeploy
+#
+# Name        SQL Type             Null    Default Primary
+# ----------- -------------------- ------- ------- -------
+# id          INTEGER              false           true   
+# server_id   integer              true            false  
+# git_branch  varchar              true            false  
+# commit_hash varchar              true            false  
+# git_user    varchar              true            false  
+# created_at  datetime             false           false  
+# updated_at  datetime             false           false  
+#
+#------------------------------------------------------------------------------

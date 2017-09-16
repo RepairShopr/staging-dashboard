@@ -1,0 +1,37 @@
+<%= form_with(model: server_deploy, local: true) do |form| %>
+  <% if server_deploy.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(server_deploy.errors.count, "error") %> prohibited this server_deploy from being saved:</h2>
+
+      <ul>
+      <% server_deploy.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :server_id %>
+    <%= form.number_field :server_id, id: :server_deploy_server_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :git_branch %>
+    <%= form.text_field :git_branch, id: :server_deploy_git_branch %>
+  </div>
+
+  <div class="field">
+    <%= form.label :commit_hash %>
+    <%= form.text_field :commit_hash, id: :server_deploy_commit_hash %>
+  </div>
+
+  <div class="field">
+    <%= form.label :git_user %>
+    <%= form.text_field :git_user, id: :server_deploy_git_user %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>

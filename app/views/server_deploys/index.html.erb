@@ -1,0 +1,33 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Server Deploys</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Server</th>
+      <th>Git branch</th>
+      <th>Commit hash</th>
+      <th>Git user</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @server_deploys.each do |server_deploy| %>
+      <tr>
+        <td><%= server_deploy.server_id %></td>
+        <td><%= server_deploy.git_branch %></td>
+        <td><%= server_deploy.commit_hash %></td>
+        <td><%= server_deploy.git_user %></td>
+        <td><%= link_to 'Show', server_deploy %></td>
+        <td><%= link_to 'Edit', edit_server_deploy_path(server_deploy) %></td>
+        <td><%= link_to 'Destroy', server_deploy, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Server Deploy', new_server_deploy_path %>
