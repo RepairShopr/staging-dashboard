@@ -20,7 +20,7 @@
                     <%= server.reserved_for %>
                 <% end %>
               </p>
-              <p class="card-text" title="<%= server.deploys.last.try(:git_commit_message) %>" data-toggle="tooltip"><%= server.deploys.last.try(:git_commit_message).to_s.truncate(80) %></p>
+              <p class="card-text" title="<%= server.deploys.last.try(:git_commit_message) %>"><%= server.deploys.last.try(:git_commit_message).to_s.truncate(80) %></p>
               <a href="https://<%= server.server_url %>" class="card-link">Server link</a>
               <%= link_to "Reserve", "#", class: "card-link bhvCardReserve bhvCardReserve-#{server.id}", data: {server: server.id}  %>
               <div class="bhvHideReserveForm-<%= server.id %>" style="display: none;">
@@ -61,11 +61,6 @@
 <script>
   $( document ).ready(function() {
     console.log( "ready!" );
-
-    $(function () {
-      $('[data-toggle="tooltip"]').tooltip()
-    })
-
     $( ".bhvCardReserve" ).click(function(e) {
       e.preventDefault()
       console.log( "Handler for .click() called.",e.currentTarget.dataset.server );
