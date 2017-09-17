@@ -4,23 +4,23 @@
 <div class="row">
   <% @servers.each do |server| %>
       <div class="col-sm-4 col-xs-6" style="padding-bottom: 20px;">
-        <div class="bs-component">
+        <div class="bs-component dashboard-card">
           <div class="card">
             <h3 class="card-info card-header"></h3>
             <h3 class="card-header"><%= server.name %></h3>
             <div class="card-block">
-              <h5 class="card-title">Branch: <%= server.deploys.last.try(:git_branch) %></h5>
-              <h6 class="card-subtitle text-muted"><%= server.status %></h6>
+              <h5 class="card-title">Branch: <%= server.deploys.last.try(:git_branch) || "master" %></h5>
+              <h6 class="card-subtitle text-muted"><%= server.dynamic_status %></h6>
             </div>
-            <img style="height: 200px; width: 100%; display: block;" src="<%= server.thumbnail_image %>" alt="Card image">
+            <img style="height: 200px; width: 100%; display: block; vertical-align: top;" src="<%= server.thumbnail_image || image_path("sample-thumbnail.png", skip_pipeline: true) %>" alt="Card image">
             <div class="card-block">
-              <p class="card-text"><%= server.reserved_for %></p>
-              <p class="card-text">last commit msg here too</p>
-              <a href="#" class="card-link">Card link</a>
-              <a href="#" class="card-link">Another link</a>
+              <p class="card-text alert-warning"><%= server.reserved_for %></p>
+              <p class="card-text" title="<%= server.deploys.last.try(:git_commit_message) %>"><%= server.deploys.last.try(:git_commit_message).to_s.truncate(80) %></p>
+              <a href="<%= server.server_url %>" class="card-link">Server link</a>
+              <a href="#" class="card-link">Reserve</a>
             </div>
             <div class="card-footer text-muted text-xs-center">
-              2 days ago
+             <%= time_ago_in_words(server.deploys.last.try(:created_at) || server.updated_at) %> Ago
             </div>
           </div>
         </div>

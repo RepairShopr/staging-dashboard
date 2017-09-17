@@ -1,6 +1,21 @@
 class ServerDeploy < ApplicationRecord
   belongs_to :server
 
+
+  def self.create_from_params(server: nil, params: nil)
+    puts "IN_CREATE: #{params}"
+    return {save: false, params: params} unless params[:git_branch]
+
+    deploy = server.deploys.new
+    deploy.git_branch = params[:git_branch]
+    deploy.git_user = params[:git_user]
+    deploy.git_commit_message = params[:git_commit_message]
+    deploy.commit_hash = params[:commit_hash]
+    deploy.save!
+
+    deploy
+  end
+
 end
 
 #------------------------------------------------------------------------------

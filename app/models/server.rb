@@ -1,6 +1,7 @@
 class Server < ApplicationRecord
   has_many :deploys, class_name: "ServerDeploy"
 
+
   def thumbnail_image
     options = {
         url: server_url,
@@ -11,7 +12,17 @@ class Server < ApplicationRecord
     }
     url = Url2png.new(options).url
     puts url
-    return url
+
+    if Rails.env.production?
+      return url
+    else
+      return nil
+    end
+
+  end
+
+  def dynamic_status
+
   end
 end
 
