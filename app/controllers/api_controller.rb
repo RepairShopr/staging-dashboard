@@ -5,7 +5,7 @@ class ApiController < ActionController::Base
 
   def deploy_log
     server = Server.find_by id: params[:server_id]
-    server ||= Server.find_by git_remote: params[:server_id]
+    server ||= Server.find_by git_remote: params[:git_remote]
   end
 
 

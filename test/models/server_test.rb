@@ -22,5 +22,6 @@ end
 # created_at     datetime             false           false  
 # updated_at     datetime             false           false  
 # server_url     varchar              true            false  
+# git_remote     varchar              true            false  
 #
 #------------------------------------------------------------------------------

@@ -1,5 +1,18 @@
 class Server < ApplicationRecord
   has_many :deploys, class_name: "ServerDeploy"
+
+  def thumbnail_image
+    options = {
+        url: server_url,
+        thumbnail_max_width: 400,
+        viewport: "10247/768",
+        fullpage: true,
+        unique: Time.now.to_i / 60       # forces a unique request at most once an hour
+    }
+    url = Url2png.new(options).url
+    puts url
+    return url
+  end
 end
 
 #------------------------------------------------------------------------------
@@ -18,5 +31,6 @@ end
 # created_at     datetime             false           false  
 # updated_at     datetime             false           false  
 # server_url     varchar              true            false  
+# git_remote     varchar              true            false  
 #
 #------------------------------------------------------------------------------
