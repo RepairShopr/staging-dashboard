@@ -13,6 +13,8 @@ class ApiController < ActionController::Base
       return render json: {success: true}
     end
     return render json: {success: false}, status: :unprocessable_entity
+  rescue => ex
+    return render json: {success: false, error_message: ex, backtrace: ex.backtrace}, status: :internal_server_error
   end
 
 
