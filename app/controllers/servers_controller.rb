@@ -41,8 +41,15 @@ class ServersController < ApplicationController
   # PATCH/PUT /servers/1.json
   def update
     respond_to do |format|
-      if @server.update(server_params)
-        format.html { redirect_to @server, notice: 'Server was successfully updated.' }
+      copied_params = server_params.dup
+      if server_params[:reserved_until].present?
+        new_time = Time.now+(copied_params[:reserved_until].to_i).hours
+        copied_params[:reserved_until] = new_time
+        puts "MUNGED: #{copied_params}"
+      end
+
+      if @server.update(copied_params)
+        format.html { redirect_to root_path, notice: 'Server was successfully updated.' }
         format.json { render :show, status: :ok, location: @server }
       else
         format.html { render :edit }
