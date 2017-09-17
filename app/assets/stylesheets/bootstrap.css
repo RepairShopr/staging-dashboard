@@ -4399,6 +4399,9 @@ tbody.collapse.show {
     background-color: #32383e;
     border: 1px solid rgba(0, 0, 0, 0.6);
     border-radius: 0.25rem;
+}
+
+.our-card {
     height: 530px;
 }
 
