@@ -4,4 +4,10 @@ Rails.application.routes.draw do
   post "/api/deploy_log", to: "api#deploy_log"
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
   root to: "servers#index"
+
+  resources :slack do
+    collection do
+      post :staging
+    end
+  end
 end
