@@ -3,6 +3,10 @@ class Server < ApplicationRecord
 
 
   def thumbnail_image
+    if !Rails.env.production?
+      return nil
+    end
+
     options = {
         url: server_url,
         thumbnail_max_width: 400,
@@ -13,12 +17,7 @@ class Server < ApplicationRecord
     url = Url2png.new(options).url
     puts url
 
-    if Rails.env.production?
-      return url
-    else
-      return nil
-    end
-
+    return url
   end
 
   def dynamic_status
