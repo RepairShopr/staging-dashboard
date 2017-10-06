@@ -9545,7 +9545,7 @@ a.bg-inverse:focus, a.bg-inverse:hover {
 }
 
 .text-muted {
-    color: #7A8288 !important;
+    color: lightgray !important;
 }
 
 a.text-muted:focus, a.text-muted:hover {
