@@ -3,6 +3,7 @@ class Server < ApplicationRecord
 
 
   def thumbnail_image
+    return nil #this is breaking?
     if !Rails.env.production?
       return nil
     end
