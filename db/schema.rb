@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170916150411) do
+ActiveRecord::Schema.define(version: 20180706143846) do
 
   create_table "server_deploys", force: :cascade do |t|
     t.integer "server_id"
@@ -34,6 +34,7 @@ ActiveRecord::Schema.define(version: 20170916150411) do
     t.datetime "updated_at", null: false
     t.string "server_url"
     t.string "git_remote"
+    t.string "jira_iframe_url"
   end
 
 end

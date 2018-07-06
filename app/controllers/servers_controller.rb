@@ -79,6 +79,6 @@ class ServersController < ApplicationController
       params.require(:server).permit(:name, :description,
                                      :logo_url, :status, :reserved_until,
                                      :reserved_for, :slack_channel,
-                                     :server_url, :git_remote)
+                                     :server_url, :git_remote, :jira_iframe_url)
     end
 end

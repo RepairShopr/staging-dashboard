@@ -24,6 +24,10 @@ class Server < ApplicationRecord
   def dynamic_status
 
   end
+
+  def live_url
+    server_url
+  end
 end
 
 #------------------------------------------------------------------------------

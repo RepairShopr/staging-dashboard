@@ -3,58 +3,60 @@
 
 <div class="row">
   <% @servers.each do |server| %>
-      <div class="col-sm-3 col-xs-6" style="padding-bottom: 20px;">
-        <div class="bs-component dashboard-card">
-          <div class="card our-card">
-            <h3 class="card-info card-header"></h3>
-            <h3 class="card-header"><%= server.name %></h3>
-            <div class="card-block">
-              <h5 class="card-title">Branch: <%= server.deploys.last.try(:git_branch) || "master" %></h5>
-              <h6 class="card-subtitle text-muted"><%= server.dynamic_status %></h6>
+    <div class="col-sm-3 col-xs-6" style="padding-bottom: 20px;">
+      <div class="bs-component dashboard-card">
+        <div class="card our-card">
+          <h3 class="<%= (server.reserved_until.present? && server.reserved_until > Time.now) ? 'card-warning' : 'card-info' %> card-header"><%# server.reserved_until%></h3>
+          <h3 class="card-header"><%= image_tag(server.name.to_s.include?("Syn") ? 'syncro-icon.png' : "logo-square-500px.png", skip_pipeline: true, style: "max-height: 25px; padding-right: 10px;") %><%= server.name %></h3>
+          <div class="card-block">
+            <h5 class="card-title">Branch: <%= server.deploys.last.try(:git_branch) || "master" %></h5>
+            <h6 class="card-subtitle text-muted"><%= server.dynamic_status %></h6>
+          </div>
+          <% if server.jira_iframe_url %>
+            <iframe src="<%= server.jira_iframe_url %>"></iframe>
+          <% end %>
+          <div class="card-block">
+            <p class="card-text alert-warning">
+              <% if server.reserved_until.present? && server.reserved_until > Time.now %>
+                Until: <%= l server.reserved_until, format: :short%><br>
+                <%= server.reserved_for %>
+              <% end %>
+            </p>
+            <p class="card-text" title="<%= server.deploys.last.try(:git_commit_message) %>"><%= server.deploys.last.try(:git_commit_message).to_s.truncate(80) %></p>
+            <a href="https://<%= server.server_url %>" class="card-link">Server link</a>
+            <%= link_to "Reserve", "#", class: "card-link bhvCardReserve bhvCardReserve-#{server.id}", data: {server: server.id}  %>
+            <div class="bhvHideReserveForm-<%= server.id %>" style="display: none;">
+              <%= form_with(model: server, local: true) do |form| %>
+
+                <div class="field">
+                  <%= form.label "Reserved for (Reason)" %>
+                  <%= form.text_field :reserved_for %>
+                </div>
+
+                <div class="field">
+                  <%= form.label :reserve_time %>
+
+                  <%= form.select(:reserved_until) do %>
+                    <% [['1 Hr', 1], ['2 Hrs', 2], ['8 Hrs', 8], ['1 Day', 24], ['2 Days', 48], ['7 Days', 168]].each do |c| -%>
+                      <%= content_tag(:option, c.first, value: c.last) %>
+                    <% end %>
+                  <% end %>
+                </div>
+
+
+                <div class="actions">
+                  <%= form.submit %>
+                </div>
+              <% end %>
+
             </div>
-            <img style="height: 200px; width: 100%; display: block; vertical-align: top;" src="<%= server.thumbnail_image || image_path("sample-thumbnail.png", skip_pipeline: true) %>" alt="Card image">
-            <div class="card-block">
-              <p class="card-text alert-warning">
-                <% if server.reserved_until.present? && server.reserved_until > Time.now-6.hours %>
-                    Until: <%= l server.reserved_until, format: :short%><br>
-                    <%= server.reserved_for %>
-                <% end %>
-              </p>
-              <p class="card-text" title="<%= server.deploys.last.try(:git_commit_message) %>"><%= server.deploys.last.try(:git_commit_message).to_s.truncate(80) %></p>
-              <a href="https://<%= server.server_url %>" class="card-link">Server link</a>
-              <%= link_to "Reserve", "#", class: "card-link bhvCardReserve bhvCardReserve-#{server.id}", data: {server: server.id}  %>
-              <div class="bhvHideReserveForm-<%= server.id %>" style="display: none;">
-                <%= form_with(model: server, local: true) do |form| %>
-
-                    <div class="field">
-                      <%= form.label "Reserved for (Reason)" %>
-                      <%= form.text_field :reserved_for %>
-                    </div>
-
-                    <div class="field">
-                      <%= form.label :reserve_time %>
-
-                      <%= form.select(:reserved_until) do %>
-                          <% [['1 Hr', 1], ['2 Hrs', 2], ['8 Hrs', 8], ['1 Day', 24], ['2 Days', 48], ['7 Days', 168]].each do |c| -%>
-                              <%= content_tag(:option, c.first, value: c.last) %>
-                          <% end %>
-                      <% end %>
-                    </div>
-
-
-                    <div class="actions">
-                      <%= form.submit %>
-                    </div>
-                <% end %>
-
-              </div>
-            </div>
-            <div class="card-footer text-xs-center">
-              <%= time_ago_in_words(server.deploys.last.try(:created_at) || server.updated_at) %> Ago
-            </div>
+          </div>
+          <div class="card-footer text-xs-center">
+            <%= time_ago_in_words(server.deploys.last.try(:created_at) || server.updated_at) %> Ago
           </div>
         </div>
       </div>
+    </div>
   <% end %>
 </div>
 
