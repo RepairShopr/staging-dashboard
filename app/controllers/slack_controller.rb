@@ -6,7 +6,7 @@ class SlackController < ActionController::Base
     # create a slash command pointing to this app /slack/staging, with a command like '/staging'
     #  https://api.slack.com/apps
     #  when you first test it out after "installing" it - just watch the payload it sends you to get the TOKEN and team domain for the authZ
-    
+
     if params[:team_domain].present? && params[:token].present?
       raise "BadAuth(tail logs to find it)" unless params[:team_domain] == ENV['SLACK_TEAM_DOMAIN'] && params[:token] == ENV['SLACK_TOKEN']
 
@@ -103,14 +103,17 @@ reserve staging2 4hrs important testing thing
       }
     end
 
-    servers  = Server.order(:name)
-    sections = servers.map do |server|
-      reserve_button = if server.reserved? # TODO run migrations && server.reserved_by == user
+    servers = Server.order(:name)
+
+    sections = []
+    servers.each do |server|
+      deploy         = server.deploys.last
+      reserve_button = if server.reserved? && server.reserved_by == user
         slack_button 'Release', "release_#{server.id}"
       else
         slack_button 'Reserve', "reserve_#{server.id}"
       end
-      {
+      sections << {
           type:      "section",
           text:      {
               type: "mrkdwn",
@@ -118,13 +121,22 @@ reserve staging2 4hrs important testing thing
           },
           accessory: reserve_button
       }
+      if server.reserved?
+        {
+            type:     "context",
+            elements: [{
+                           type: "mrkdwn",
+                           text: "Reserved by #{server.reserved_by} until <!date^#{server.reserved_until.to_i}^{date_short_pretty} {time}|#{server.reserved_until.to_s}>"
+                       }]
+        }
+      end
     end
 
     blocks += sections
 
     response_payload = {
         response_type: 'ephemeral',
-        blocks: blocks
+        blocks:        blocks
     }
 
     render json: response_payload
