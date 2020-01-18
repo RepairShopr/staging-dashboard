@@ -102,7 +102,7 @@ reserve staging2 4hrs important testing thing
 
     servers  = Server.order(:name)
     sections = servers.map do |server|
-      reserve_button = if server.reserved? && server.reserved_by == user
+      reserve_button = if server.reserved? # TODO run migrations && server.reserved_by == user
         slack_button 'Release', "release_#{server.id}"
       else
         slack_button 'Reserve', "reserve_#{server.id}"
