@@ -96,7 +96,10 @@ reserve staging2 4hrs important testing thing
     if params[:text].split(' ').second == 'debug'
       blocks << {
           type: 'section',
-          text: params.to_json
+          text: {
+              type: 'plain_text',
+              text: params.to_json
+          }
       }
     end
 
