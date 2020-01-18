@@ -10,6 +10,8 @@ class SlackController < ActionController::Base
     if params[:team_domain].present? && params[:token].present?
       raise "BadAuth(tail logs to find it)" unless params[:team_domain] == ENV['SLACK_TEAM_DOMAIN'] && params[:token] == ENV['SLACK_TOKEN']
 
+      return super_staging if params[:text] == 'super'
+
       yellow = "#f89406"
       white = "#ffffff"
       green = "#62c462"
@@ -86,5 +88,51 @@ reserve staging2 4hrs important testing thing
     render json: response_payload and return
   end
 
+  def super_staging
+    return render json: {text: params.to_json}
+    user = params[:user]
+
+    blocks = []
+
+    servers  = Server.order(:name)
+    sections = servers.map do |server|
+      reserve_button = if server.reserved? && server.reserved_by == user
+        slack_button 'Release', "release_#{server.id}"
+      else
+        slack_button 'Reserve', "reserve_#{server.id}"
+      end
+      {
+          type:      "section",
+          text:      {
+              type: "mrkdwn",
+              text: "#{server.status_emoji}#{server.platform_emoji} *#{server.name} (#{server.git_remote})*\n"
+          },
+          accessory: reserve_button
+      }
+    end
+
+    blocks += sections
+
+    response_payload = {
+        response_type: 'ephemeral',
+        blocks: blocks
+    }
+
+    render json: response_payload
+  end
+
+  private
+
+  def slack_button(text, action)
+    {
+        type:  "button",
+        text:  {
+            type:  "plain_text",
+            emoji: true,
+            text:  text
+        },
+        value: action
+    }
+  end
 
 end

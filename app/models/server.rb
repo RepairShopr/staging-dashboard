@@ -28,6 +28,41 @@ class Server < ApplicationRecord
   def live_url
     server_url
   end
+
+  def reserved?
+    reserved_until.present? && reserved_until > Time.now
+  end
+
+  def recently_reserved?
+    reserved_until.present? && (6.hours.ago..Time.now).include?(reserved_until)
+  end
+
+  def free?
+    reserved_until.blank? || reserved_until < 6.hours.ago
+  end
+
+  def status_emoji
+    if reserved?
+      ':x:'
+    elsif recently_reserved?
+      ':warning:'
+    else
+      ':white_check_mark:'
+    end
+  end
+
+  def platform_emoji
+    case platform&.downcase
+    when 'rs', 'repairshopr'
+      ':rs:'
+    when 'syncro'
+      ':syncro:'
+    when 'kabuto'
+      ':kabuto:'
+    else
+      ''
+    end
+  end
 end
 
 #------------------------------------------------------------------------------

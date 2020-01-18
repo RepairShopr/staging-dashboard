@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   resources :slack do
     collection do
       post :staging
+      post :super_staging
     end
   end
 end
