@@ -1,5 +1,6 @@
 class SlackController < ActionController::Base
   include ActionView::Helpers::DateHelper
+  before_action :verify_super_staging, only: %i[super_staging super_staging_event]
 
   def staging
 
@@ -15,9 +16,6 @@ class SlackController < ActionController::Base
       green = "#62c462"
 
       case params[:text].split(" ").first
-        when 'super'
-          return super_staging
-
         ################################################################ LIST THE SERVERS STATUS ################################################
         when 'list'
 
@@ -93,7 +91,7 @@ reserve staging2 4hrs important testing thing
 
     blocks = []
 
-    if params[:text].split(' ').second == 'debug'
+    if params[:text].split(' ').include? 'debug'
       blocks << {
           type: 'section',
           text: {
@@ -113,21 +111,29 @@ reserve staging2 4hrs important testing thing
       else
         slack_button 'Reserve', "reserve_#{server.id}"
       end
+      last_deploy = if deploy.present?
+        [
+            "Last deployed #{slack_date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ({date_short_pretty} {time})")} by #{deploy.git_user}",
+            "#{deploy.slack_git_link} #{deploy.git_commit_message.truncate(100)}"
+        ].join("\n")
+      end
       sections << {
           type:      "section",
           text:      {
               type: "mrkdwn",
-              text: "#{server.status_emoji}#{server.platform_emoji} *#{server.name} (#{server.git_remote})*\n"
+              text: ["#{server.status_emoji}#{server.platform_emoji} *#{server.name} (#{server.git_remote})*", last_deploy].compact.join("\n")
           },
           accessory: reserve_button
       }
       if server.reserved?
-        {
+        sections << {
             type:     "context",
-            elements: [{
-                           type: "mrkdwn",
-                           text: "Reserved by #{server.reserved_by} until <!date^#{server.reserved_until.to_i}^{date_short_pretty} {time}|#{server.reserved_until.to_s}>"
-                       }]
+            elements: [
+                          {
+                              type: "mrkdwn",
+                              text: "Reserved by #{server.reserved_by} until <!date^#{server.reserved_until.to_i}^{date_short_pretty} {time}|#{server.reserved_until.to_s}>"
+                          }
+                      ]
         }
       end
     end
@@ -142,7 +148,15 @@ reserve staging2 4hrs important testing thing
     render json: response_payload
   end
 
+  def super_staging_event
+    return render json: {challenge: params[:challenge]} if params[:type] == 'url_verification'
+  end
+
   private
+
+  def verify_super_staging
+    render json: {error: 'Invalid token'}, status: 400 unless params[:token] == SUPER_STAGING_TOKEN # XXX move to ENV
+  end
 
   def slack_button(text, action)
     {
@@ -156,4 +170,7 @@ reserve staging2 4hrs important testing thing
     }
   end
 
+  def slack_date(datetime, format)
+    "<!date^#{datetime.to_i}^#{format}|#{datetime.to_s}>"
+  end
 end

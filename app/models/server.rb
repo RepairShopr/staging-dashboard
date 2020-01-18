@@ -64,6 +64,23 @@ class Server < ApplicationRecord
     end
   end
 
+  def kabuto?
+    platform.downcase == 'kabuto'
+  end
+
+  def repairshopr?
+    platform.downcase.in? %w[rs repairshopr]
+  end
+  alias_method :rs?, :repairshopr?
+
+  def syncro?
+    platform.downcase == 'syncro'
+  end
+
+  def rsyn?
+    repairshopr? || syncro?
+  end
+
   # XXX run migrations
   def platform
     if name.include?('Kabuto')

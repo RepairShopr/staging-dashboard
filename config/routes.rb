@@ -9,6 +9,7 @@ Rails.application.routes.draw do
     collection do
       post :staging
       post :super_staging
+      post :super_staging_event
     end
   end
 end

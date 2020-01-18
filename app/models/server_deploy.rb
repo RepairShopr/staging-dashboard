@@ -1,21 +1,33 @@
 class ServerDeploy < ApplicationRecord
   belongs_to :server
 
-
   def self.create_from_params(server: nil, params: nil)
     puts "IN_CREATE: #{params}"
     return {save: false, params: params} unless params[:git_branch]
 
-    deploy = server.deploys.new
-    deploy.git_branch = params[:git_branch]
-    deploy.git_user = params[:git_user]
+    deploy                    = server.deploys.new
+    deploy.git_branch         = params[:git_branch]
+    deploy.git_user           = params[:git_user]
     deploy.git_commit_message = params[:git_commit_message]
-    deploy.commit_hash = params[:commit_hash]
+    deploy.commit_hash        = params[:commit_hash]
     deploy.save!
 
     deploy
   end
 
+  def git_url
+    if server.rsyn?
+      "https://github.com/RepairShopr/RepairShopr/commit/#{commit_hash}"
+    elsif server.kabuto?
+      "https://github.com/repairtech/kabuto/commit/#{commit_hash}"
+    else
+      ''
+    end
+  end
+
+  def slack_git_link
+    "<#{git_url}|#{git_branch}"
+  end
 end
 
 #------------------------------------------------------------------------------
