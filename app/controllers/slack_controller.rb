@@ -10,13 +10,13 @@ class SlackController < ActionController::Base
     if params[:team_domain].present? && params[:token].present?
       raise "BadAuth(tail logs to find it)" unless params[:team_domain] == ENV['SLACK_TEAM_DOMAIN'] && params[:token] == ENV['SLACK_TOKEN']
 
-      return super_staging if params[:text] == 'super'
-
       yellow = "#f89406"
       white = "#ffffff"
       green = "#62c462"
 
       case params[:text].split(" ").first
+        when 'super'
+          return super_staging
 
         ################################################################ LIST THE SERVERS STATUS ################################################
         when 'list'
@@ -89,10 +89,16 @@ reserve staging2 4hrs important testing thing
   end
 
   def super_staging
-    return render json: {text: params.to_json}
-    user = params[:user]
+    user = params[:user_id]
 
     blocks = []
+
+    if params[:text].split(' ').second == 'debug'
+      blocks << {
+          type: 'section',
+          text: params.to_json
+      }
+    end
 
     servers  = Server.order(:name)
     sections = servers.map do |server|
