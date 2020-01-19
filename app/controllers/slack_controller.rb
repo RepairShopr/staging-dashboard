@@ -187,7 +187,7 @@ reserve staging2 4hrs important testing thing
   end
 
   def process_actions(actions, user)
-    actions.each do |action_id:, value:, **|
+    actions.map(&:to_options).each do |action_id:, value:, **|
       server = Server.find value
       case action_id
       when 'reserve'
