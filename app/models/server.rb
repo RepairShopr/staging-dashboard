@@ -51,7 +51,6 @@ class Server < ApplicationRecord
   end
 
   def platform_emoji
-    return '' # TODO run migrations
     case platform&.downcase
     when 'rs', 'repairshopr'
       ':rs:'
