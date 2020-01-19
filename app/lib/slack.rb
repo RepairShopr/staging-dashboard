@@ -121,11 +121,11 @@ module Slack
       pp Faraday.post(
           'https://slack.com/api/views.open',
           {
-              token:            ENV['SUPER_STAGING_ACCESS_TOKEN'],
               trigger_id:       trigger_id,
               private_metadata: private_metadata,
               view:             view.as_json
           }.compact.to_json,
+          'Authorization' => "Bearer #{ENV['SUPER_STAGING_ACCESS_TOKEN']}",
           "Content-Type" => "application/json"
       )
     end
@@ -135,10 +135,10 @@ module Slack
       pp Faraday.post(
           'https://slack.com/api/views.publish',
           {
-              token:   ENV['SUPER_STAGING_ACCESS_TOKEN'],
               user_id: user_id,
               view:    view.as_json
           }.compact.to_json,
+          'Authorization' => "Bearer #{ENV['SUPER_STAGING_ACCESS_TOKEN']}",
           "Content-Type" => "application/json"
       )
     end
