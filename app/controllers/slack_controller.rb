@@ -242,6 +242,8 @@ reserve staging2 4hrs important testing thing
 
       case action_id
       when 'reserve'
+        puts 'reserve private metadata'
+        pp private_metadata = response_metadata.merge(server_id: server.id).to_json
         Slack::Api.views_open(trigger_id, Slack::View.modal(
             "Reserve #{server.name}",
             [
@@ -251,14 +253,14 @@ reserve staging2 4hrs important testing thing
             callback_id: 'do_reserve',
             submit:      'Reserve',
             close:       'Cancel'
-        ), private_metadata: response_metadata.merge(server_id: server.id).to_json)
+        ), private_metadata: private_metadata)
       when 'release'
         server.release!
+
+        @updated_servers[value] = action_id
       else
         raise "Unknown action: #{action_id}"
       end
-
-      @updated_servers[value] = action_id
     end
   end
 

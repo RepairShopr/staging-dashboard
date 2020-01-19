@@ -117,6 +117,7 @@ module Slack
 
     def views_open(trigger_id, view, private_metadata: nil)
       pp view
+      pp private_metadata
       pp Faraday.post(
           'https://slack.com/api/views.open',
           {
