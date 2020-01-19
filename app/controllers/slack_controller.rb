@@ -160,6 +160,8 @@ reserve staging2 4hrs important testing thing
         sections << Slack::View.context(Slack::View.markdown("Reserved by #{server.reserved_by} until #{Slack::View.date(server.reserved_until, '{date_short_pretty} {time}')}"))
       end
     end
+
+    sections
   end
 
   def verify_super_staging
