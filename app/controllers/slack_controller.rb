@@ -152,14 +152,10 @@ reserve staging2 4hrs important testing thing
 
       case safe_params.dig(:view, :callback_id)
       when 'do_reserve'
-        puts 'do_reserve'
         response_metadata = JSON.parse(safe_params.dig(:view, :private_metadata)).with_indifferent_access
         server            = Server.find(response_metadata[:server_id])
         purpose           = safe_params.dig(:view, :state, :values, :reserve_purpose, :reserve_purpose, :value)
         hours             = safe_params.dig(:view, :state, :values, :reserve_hours, :reserve_hours, :value)
-        pp response_metadata
-        pp purpose
-        pp hours
         server.reserve!(purpose, hours, user)
 
         respond_to_actions(user, **response_metadata.to_options)
@@ -212,9 +208,8 @@ reserve staging2 4hrs important testing thing
       else
         Slack::View.button 'Reserve', "reserve", server.id.to_s
       end
-      last_reservation = if server.reserved_for.present?
-        which = server.reserved? ? 'Currently' : 'Last'
-        "#{which} reserved for #{server.reserved_for} by #{Slack::View.user_link server.reserved_by}"
+      last_reservation = if server.reserved?
+        "Currently reserved for #{server.reserved_for}"
       end
 
       last_deploy    = if deploy.present?
@@ -264,13 +259,12 @@ reserve staging2 4hrs important testing thing
 
       case action_id
       when 'reserve'
-        puts 'reserve private metadata'
-        pp private_metadata = response_metadata.merge(server_id: server.id).to_json
+        private_metadata = response_metadata.merge(server_id: server.id).to_json
         Slack::Api.views_open(trigger_id, Slack::View.modal(
             "Reserve #{server.name}",
             [
                 Slack::View.plain_text_input('Purpose', block_id: 'reserve_purpose', action_id: 'reserve_purpose', placeholder: "Why are you reserving #{server.name}?"),
-                Slack::View.plain_text_input('Hours', block_id: 'reserve_hours', action_id: 'reserve_hours', placeholder: 'Just enter an integer (default: 1)')
+                Slack::View.plain_text_input('Hours', block_id: 'reserve_hours', action_id: 'reserve_hours', placeholder: 'Just enter an integer')
             ],
             callback_id: 'do_reserve',
             private_metadata: private_metadata,

@@ -86,7 +86,7 @@ class Server < ApplicationRecord
   end
 
   def release!
-    update!(reserved_until: Time.now)
+    update!(reserved_until: nil)
   end
 end
 

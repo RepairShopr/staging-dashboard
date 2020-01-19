@@ -108,8 +108,7 @@ module Slack
     extend self
 
     def post_response(response_url, payload)
-      pp response_url, payload
-      pp Faraday.post(
+      Faraday.post(
           response_url,
           payload.to_json,
           "Content-Type" => "application/json"
@@ -117,8 +116,7 @@ module Slack
     end
 
     def views_open(trigger_id, view)
-      pp view
-      pp Faraday.post(
+      Faraday.post(
           'https://slack.com/api/views.open',
           {
               trigger_id: trigger_id,
@@ -130,8 +128,7 @@ module Slack
     end
 
     def views_publish(user_id, view)
-      pp view
-      pp Faraday.post(
+      Faraday.post(
           'https://slack.com/api/views.publish',
           {
               user_id: user_id,
