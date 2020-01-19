@@ -119,13 +119,13 @@ reserve staging2 4hrs important testing thing
       case event[:type]
       when 'app_home_opened'
         Slack::Api.views_publish(event[:user], Slack::View.home(server_sections(event[:user])))
+
+        head :ok
       else
         head :not_implemented
       end
-
-      head :ok
     else
-      head :ok
+      head :not_implemented
     end
   end
 
