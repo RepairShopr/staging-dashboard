@@ -138,7 +138,7 @@ reserve staging2 4hrs important testing thing
       elsif safe_params.dig(:view, :type) == 'home'
         {type: 'home'}
       end
-      process_actions safe_params[:actions], user, safe_params[:trigger_id], response_metadata
+      process_actions safe_params[:actions], safe_params[:trigger_id], response_metadata
 
       if @updated_servers.present?
         respond_to_actions(user, **response_metadata)
@@ -159,6 +159,10 @@ reserve staging2 4hrs important testing thing
         server.reserve!(purpose, hours, user)
 
         respond_to_actions(user, **response_metadata.to_options)
+
+        head :ok
+      else
+        head :not_implemented
       end
     else
       head :not_implemented
@@ -195,6 +199,11 @@ reserve staging2 4hrs important testing thing
       else
         Slack::View.button 'Reserve', "reserve", server.id.to_s
       end
+      last_reservation = if server.reserved_for.present?
+        which = server.reserved? ? 'Currently' : 'Last'
+        "#{which} reserved for #{server.reserved_for} by #{Slack::View.user_link server.reserved_by}"
+      end
+
       last_deploy    = if deploy.present?
         [
             "Last deployed #{Slack::View.date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ago ({date_short_pretty} {time})")} by #{deploy.git_user}",
@@ -206,7 +215,7 @@ reserve staging2 4hrs important testing thing
           type:      "section",
           text:      {
               type: "mrkdwn",
-              text: ["#{server.status_emoji}#{server.platform_emoji} *#{server.name} (#{server.git_remote})*", last_deploy].compact.join("\n")
+              text: ["#{server.status_emoji}#{server.platform_emoji} *#{server.name} (#{server.git_remote})*", last_reservation, last_deploy].compact.join("\n")
           },
           accessory: reserve_button
       }
@@ -235,7 +244,7 @@ reserve staging2 4hrs important testing thing
     sections
   end
 
-  def process_actions(actions, user, trigger_id, response_metadata)
+  def process_actions(actions, trigger_id, response_metadata)
     @updated_servers = {}
     actions.map(&:to_options).each do |action_id:, value:, **|
       server = Server.find value
