@@ -56,7 +56,7 @@ module Slack
     def views_publish(user_id, view)
       Faraday.post(
           'https://slack.com/api/views.publish',
-          token: SUPER_STAGING_ACCESS_TOKEN,
+          token: ENV['SUPER_STAGING_ACCESS_TOKEN'],
           user_id: user_id,
           view: view
       )

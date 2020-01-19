@@ -174,6 +174,6 @@ reserve staging2 4hrs important testing thing
 
   def verify_super_staging
     return # TODO verify token
-    render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == SUPER_STAGING_VERIFY_TOKEN # XXX move to ENV
+    render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == ENV['SUPER_STAGING_VERIFY_TOKEN']
   end
 end
