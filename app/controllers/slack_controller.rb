@@ -141,7 +141,7 @@ reserve staging2 4hrs important testing thing
       if safe_params.key?(:response_url)
         Slack::Api.post_response(safe_params[:response_url], {
             replace_original: 'true',
-            blocks: [Slack::View.section(Slack::View.plain_text('foo bar'))]
+            blocks: server_sections(user)
         })
       elsif safe_params.dig(:view, :type) == 'home'
         Slack::Api.views_publish(user, Slack::View.home(server_sections(user)))
@@ -168,6 +168,7 @@ reserve staging2 4hrs important testing thing
   end
 
   def server_sections(user, servers = Server.order(:name))
+    @updated_servers ||= {}
     sections = []
     servers.each do |server|
       deploy         = server.deploys.last
@@ -193,14 +194,27 @@ reserve staging2 4hrs important testing thing
       if server.reserved?
         sections << Slack::View.context(Slack::View.markdown("Reserved by #{Slack::View.user_link server.reserved_by} until #{Slack::View.date(server.reserved_until, '{date_short_pretty} {time}')}"))
       end
+      if @updated_servers.key? server.id.to_s
+        message = case @updated_servers[server.id.to_s]
+        when 'reserve'
+          ":white_check_mark: Successfully reserved!"
+        when 'release'
+          ":white_check_mark: Successfully released!"
+        else
+          ':warning: Unknown action'
+        end
+        sections << Slack::View.context(Slack::View.markdown(message))
+      end
     end
 
     sections
   end
 
   def process_actions(actions, user)
+    @updated_servers = {}
     actions.map(&:to_options).each do |action_id:, value:, **|
       server = Server.find value
+
       case action_id
       when 'reserve'
         server.update! reserved_until: 1.hour.from_now, reserved_for: user, reserved_by: user
@@ -209,6 +223,8 @@ reserve staging2 4hrs important testing thing
       else
         raise "Unknown action: #{action_id}"
       end
+
+      @updated_servers[value] = action_id
     end
   end
 

@@ -46,7 +46,7 @@ class Server < ApplicationRecord
     elsif recently_reserved?
       ':warning:'
     else
-      ':white_check_mark:'
+      ''
     end
   end
 
