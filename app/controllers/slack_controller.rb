@@ -188,7 +188,16 @@ reserve staging2 4hrs important testing thing
   end
 
   def view_submission_params
-    params.permit(:type, user: [:id], view: [:callback_id, :private_metadata, state: [values: [:value]]])
+    # values is structured as
+    # "values": {
+    #   block_id: { // variable block_id from input
+    #     action_id: { // variable action_id from input
+    #       "type": "", // literal key "type"
+    #       "value": "" // literal key "value"
+    #     }
+    #   }
+    # }
+    params.permit(:type, user: [:id], view: [:callback_id, :private_metadata, state: [values: {}]])
   end
 
   def server_sections(user, servers = Server.order(:name))
