@@ -9,14 +9,15 @@ module Slack
       }
     end
 
-    def modal(title, blocks, callback_id: nil, submit: nil, close: nil)
+    def modal(title, blocks, callback_id: nil, submit: nil, close: nil, private_metadata: nil)
       {
-          type:        'modal',
-          callback_id: callback_id,
-          title:       wrap_plain_text(title),
-          blocks:      Array.wrap(blocks),
-          submit:      wrap_plain_text(submit),
-          close:       wrap_plain_text(close),
+          type:             'modal',
+          callback_id:      callback_id,
+          title:            wrap_plain_text(title),
+          blocks:           Array.wrap(blocks),
+          submit:           wrap_plain_text(submit),
+          close:            wrap_plain_text(close),
+          private_metadata: private_metadata,
       }.compact
     end
 
@@ -115,16 +116,13 @@ module Slack
       )
     end
 
-    def views_open(trigger_id, view, private_metadata: nil)
-      private_metadata = 'foo bar'
+    def views_open(trigger_id, view)
       pp view
-      pp private_metadata
       pp Faraday.post(
           'https://slack.com/api/views.open',
           {
-              trigger_id:       trigger_id,
-              private_metadata: private_metadata,
-              view:             view.as_json
+              trigger_id: trigger_id,
+              view:       view.as_json
           }.compact.to_json,
           'Authorization' => "Bearer #{ENV['SUPER_STAGING_ACCESS_TOKEN']}",
           "Content-Type"  => "application/json"

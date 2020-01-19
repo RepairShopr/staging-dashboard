@@ -251,9 +251,10 @@ reserve staging2 4hrs important testing thing
                 Slack::View.plain_text_input('Hours', block_id: 'reserve_hours', action_id: 'reserve_hours', placeholder: 'Just enter an integer (default: 1)')
             ],
             callback_id: 'do_reserve',
+            private_metadata: private_metadata,
             submit:      'Reserve',
             close:       'Cancel'
-        ), private_metadata: private_metadata)
+        ))
       when 'release'
         server.release!
 
