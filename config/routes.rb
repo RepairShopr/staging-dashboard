@@ -8,8 +8,9 @@ Rails.application.routes.draw do
   resources :slack do
     collection do
       post :staging
-      post :super_staging
+      post :slash_super_staging
       post :super_staging_event
+      post :super_staging_interactivity
     end
   end
 end

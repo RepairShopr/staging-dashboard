@@ -26,7 +26,7 @@ class ServerDeploy < ApplicationRecord
   end
 
   def slack_git_link
-    "<#{git_url}|#{git_branch}>"
+    "<#{git_url}|#{git_branch.strip}>"
   end
 end
 

@@ -1,8 +1,8 @@
 class SlackController < ActionController::Base
   include ActionView::Helpers::DateHelper
 
-  # TODO verify token
-  #before_action :verify_super_staging, only: %i[super_staging super_staging_event]
+  before_action :parse_payload, only: %i[super_staging_interactivity]
+  before_action :verify_super_staging, only: %i[slash_super_staging super_staging_event super_staging_interactivity]
 
   def staging
 
@@ -88,7 +88,7 @@ reserve staging2 4hrs important testing thing
     render json: response_payload and return
   end
 
-  def super_staging
+  def slash_super_staging
     if params[:text].split(' ').first == 'home'
       blocks = Slack::View.section(Slack::View.plain_text(params.to_json))
       Slack::Api.views_publish('U34AGSLG5', Slack::View.home(blocks))
@@ -129,6 +129,19 @@ reserve staging2 4hrs important testing thing
     end
   end
 
+  def super_staging_interactivity
+    #pp payload = JSON.parse(params[:payload]).with_indifferent_access
+
+    case params[:type]
+    when 'block_actions'
+      process_actions params[:actions], params.dig(:user, :id)
+      render json: {
+          replace_original: true,
+          text: "Thanks for your request, we'll process it and get back to you."
+      }
+    end
+  end
+
   private
 
   def server_sections(user)
@@ -164,7 +177,24 @@ reserve staging2 4hrs important testing thing
     sections
   end
 
+  def process_actions(actions, user)
+    actions.each do |action|
+      value = action[:value]
+      op, id =  value.split('_')
+      server = Server.find id
+      case op
+      when 'reserve'
+        server.update! reserved_until: 1.hour.from_now, reserved_for: user
+      end
+    end
+  end
+
   def verify_super_staging
     render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == ENV['SUPER_STAGING_VERIFY_TOKEN']
+  end
+
+  def parse_payload
+    self.params = ActionController::Parameters.new JSON.parse params[:payload]
+    pp params
   end
 end
