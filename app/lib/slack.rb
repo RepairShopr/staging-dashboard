@@ -13,9 +13,9 @@ module Slack
       {
           type: 'section',
           text: text,
-          **({accessory: accessory} if accessory.present?),
-          **({fields: fields} if fields.present?)
-      }
+          accessory: accessory.presence,
+          fields: fields.presence
+      }.compact
     end
 
     def context(elements)
