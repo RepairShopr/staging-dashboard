@@ -179,7 +179,7 @@ reserve staging2 4hrs important testing thing
       server = Server.find value
       case action_id
       when 'reserve'
-        server.update! reserved_until: 1.hour.from_now, reserved_for: user
+        server.update! reserved_until: 1.hour.from_now, reserved_for: user, reserved_by: user
       when 'release'
         server.update! reserved_until: Time.now
       else
