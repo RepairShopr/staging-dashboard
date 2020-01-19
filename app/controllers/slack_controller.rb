@@ -89,11 +89,6 @@ reserve staging2 4hrs important testing thing
   end
 
   def slash_super_staging
-    if params[:text].split(' ').first == 'home'
-      blocks = Slack::View.section(Slack::View.plain_text(params.to_json))
-      Slack::Api.views_publish('U34AGSLG5', Slack::View.home(blocks))
-    end
-
     blocks = []
 
     if params[:text].split(' ').include? 'debug'
@@ -132,22 +127,39 @@ reserve staging2 4hrs important testing thing
   def super_staging_interactivity
     case params[:type]
     when 'block_actions'
-      puts 'block_actions'
-      pp safe_params = block_actions_params.to_h
+      safe_params = block_actions_params.to_h
 
-      user = safe_params.dig(:user, :id)
-      process_actions safe_params[:actions], user
-
-      if safe_params.key?(:response_url)
-        Slack::Api.post_response(safe_params[:response_url], {
-            replace_original: 'true',
-            blocks: server_sections(user)
-        })
+      user              = safe_params.dig(:user, :id)
+      response_metadata = if safe_params.key?(:response_url)
+        {
+            type:         'message',
+            response_url: safe_params[:response_url]
+        }
       elsif safe_params.dig(:view, :type) == 'home'
-        Slack::Api.views_publish(user, Slack::View.home(server_sections(user)))
+        {type: 'home'}
+      end
+      process_actions safe_params[:actions], user, safe_params[:trigger_id], response_metadata
+
+      if @updated_servers.present?
+        respond_to_actions(user, **response_metadata)
       end
 
       head :ok
+
+    when 'view_submission'
+      safe_params = view_submission_params.to_h
+      user        = safe_params.dig(:user, :id)
+
+      case safe_params.dig(:view, :callback_id)
+      when 'do_reserve'
+        response_metadata = JSON.parse(safe_params.dig(:view, :private_metadata)).with_indifferent_access
+        server            = Server.find(response_metadata[:server_id])
+        purpose           = safe_params.dig(:view, :state, :values, :reserve_purpose, :reserve_purpose, :value)
+        hours             = safe_params.dig(:view, :state, :values, :reserve_hours, :reserve_hours, :value)
+        server.reserve!(purpose, hours, user)
+
+        respond_to_actions(user, **response_metadata.to_options)
+      end
     else
       head :not_implemented
     end
@@ -164,14 +176,20 @@ reserve staging2 4hrs important testing thing
   end
 
   def block_actions_params
-    params.permit(:type, :response_url, actions: [:action_id, :value], user: [:id], view: [:type])
+    params.permit(:type, :response_url, :trigger_id, actions: [:action_id, :value], user: [:id], view: [:type])
+  end
+
+  def view_submission_params
+    params.permit(:type, user: [:id], view: [:callback_id, :private_metadata, state: [values: [:value]]])
   end
 
   def server_sections(user, servers = Server.order(:name))
     @updated_servers ||= {}
-    sections = []
+    sections         = []
     servers.each do |server|
-      deploy         = server.deploys.last
+      deploy = server.deploys.last
+
+      # Server status section
       reserve_button = if server.reserved? && server.reserved_by == user
         Slack::View.button 'Release', "release", server.id.to_s
       else
@@ -179,10 +197,11 @@ reserve staging2 4hrs important testing thing
       end
       last_deploy    = if deploy.present?
         [
-            "Last deployed #{Slack::View.date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ({date_short_pretty} {time})")} by #{deploy.git_user}",
-            "#{Slack::View.link deploy.git_url, deploy.git_branch} #{deploy.git_commit_message.truncate(100)}"
+            "Last deployed #{Slack::View.date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ago ({date_short_pretty} {time})")} by #{deploy.git_user}",
+            "#{Slack::View.link deploy.git_url, deploy.git_branch} #{deploy.git_commit_message.lines.first.truncate(100).strip}"
         ].join("\n")
       end
+
       sections << {
           type:      "section",
           text:      {
@@ -191,40 +210,69 @@ reserve staging2 4hrs important testing thing
           },
           accessory: reserve_button
       }
+
+      # Reserved context
       if server.reserved?
         sections << Slack::View.context(Slack::View.markdown("Reserved by #{Slack::View.user_link server.reserved_by} until #{Slack::View.date(server.reserved_until, '{date_short_pretty} {time}')}"))
+      elsif server.recently_reserved?
+        sections << Slack::View.context(Slack::View.markdown("Recently released from #{Slack::View.user_link server.reserved_by} #{Slack::View.date(server.reserved_until, "#{time_ago_in_words server.reserved_until} ago {date_short_pretty} {time}")}"))
       end
+
+      # Action result context section
       if @updated_servers.key? server.id.to_s
         message = case @updated_servers[server.id.to_s]
-        when 'reserve'
+        when 'do_reserve'
           ":white_check_mark: Successfully reserved!"
         when 'release'
           ":white_check_mark: Successfully released!"
         else
-          ':warning: Unknown action'
+          nil
         end
-        sections << Slack::View.context(Slack::View.markdown(message))
+        sections << Slack::View.context(Slack::View.markdown(message)) if message.present?
       end
     end
 
     sections
   end
 
-  def process_actions(actions, user)
+  def process_actions(actions, user, trigger_id, response_metadata)
     @updated_servers = {}
     actions.map(&:to_options).each do |action_id:, value:, **|
       server = Server.find value
 
       case action_id
       when 'reserve'
-        server.update! reserved_until: 1.hour.from_now, reserved_for: user, reserved_by: user
+        Slack::Api.views_open(trigger_id, Slack::View.modal(
+            "Reserve #{server.name}",
+            [
+                Slack::View.plain_text_input('Purpose', block_id: 'reserve_purpose', action_id: 'reserve_purpose', placeholder: "Why are you reserving #{server.name}?"),
+                Slack::View.plain_text_input('Hours', block_id: 'reserve_hours', action_id: 'reserve_hours', placeholder: 'Just enter an integer (default: 1)')
+            ],
+            callback_id: 'do_reserve',
+            submit:      'Reserve',
+            close:       'Cancel'
+        ), private_metadata: response_metadata.merge(server_id: server.id).to_json)
       when 'release'
-        server.update! reserved_until: Time.now
+        server.release!
       else
         raise "Unknown action: #{action_id}"
       end
 
       @updated_servers[value] = action_id
+    end
+  end
+
+  def respond_to_actions(user, type:, response_url: nil, **)
+    case type
+    when 'message'
+      Slack::Api.post_response(response_url, {
+          replace_original: 'true',
+          blocks:           server_sections(user)
+      })
+    when 'home'
+      Slack::Api.views_publish(user, Slack::View.home(server_sections(user)))
+    else
+      # do nothing
     end
   end
 

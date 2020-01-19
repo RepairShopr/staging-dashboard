@@ -80,6 +80,14 @@ class Server < ApplicationRecord
   def rsyn?
     repairshopr? || syncro?
   end
+
+  def reserve!(purpose, hours, user)
+    update!(reserved_for: purpose, reserved_until: (hours.to_i.nonzero? || 1).hours.from_now, reserved_by: user)
+  end
+
+  def release!
+    update!(reserved_until: Time.now)
+  end
 end
 
 #------------------------------------------------------------------------------
