@@ -5,7 +5,7 @@ module Slack
     def home(blocks)
       {
           type:   'home',
-          blocks: blocks
+          blocks: Array.wrap(blocks)
       }
     end
 
@@ -62,7 +62,7 @@ module Slack
           'https://slack.com/api/views.publish',
           token:   ENV['SUPER_STAGING_ACCESS_TOKEN'],
           user_id: user_id,
-          view:    view
+          view:    view.to_json
       )
     end
   end
