@@ -1,5 +1,7 @@
 class SlackController < ActionController::Base
   include ActionView::Helpers::DateHelper
+
+  # TODO verify token
   #before_action :verify_super_staging, only: %i[super_staging super_staging_event]
 
   def staging
@@ -173,7 +175,6 @@ reserve staging2 4hrs important testing thing
   private
 
   def verify_super_staging
-    return # TODO verify token
     render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == ENV['SUPER_STAGING_VERIFY_TOKEN']
   end
 end

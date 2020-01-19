@@ -1,8 +1,10 @@
 module Slack
   module View
+    extend self
+
     def home(blocks)
       {
-          type: 'home',
+          type:   'home',
           blocks: blocks
       }
     end
@@ -18,7 +20,7 @@ module Slack
 
     def context(elements)
       {
-          type: 'context',
+          type:     'context',
           elements: Array.wrap(elements)
       }
     end
@@ -32,8 +34,8 @@ module Slack
 
     def plain_text(text, emoji: true)
       {
-          type: 'plain_text',
-          text: text,
+          type:  'plain_text',
+          text:  text,
           emoji: emoji
       }
     end
@@ -53,12 +55,14 @@ module Slack
   end
 
   module Api
+    extend self
+
     def views_publish(user_id, view)
       Faraday.post(
           'https://slack.com/api/views.publish',
-          token: ENV['SUPER_STAGING_ACCESS_TOKEN'],
+          token:   ENV['SUPER_STAGING_ACCESS_TOKEN'],
           user_id: user_id,
-          view: view
+          view:    view
       )
     end
   end
