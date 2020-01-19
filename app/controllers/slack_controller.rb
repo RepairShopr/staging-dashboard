@@ -14,62 +14,62 @@ class SlackController < ActionController::Base
       raise "BadAuth(tail logs to find it)" unless params[:team_domain] == ENV['SLACK_TEAM_DOMAIN'] && params[:token] == ENV['SLACK_TOKEN']
 
       yellow = "#f89406"
-      white = "#ffffff"
-      green = "#62c462"
+      white  = "#ffffff"
+      green  = "#62c462"
 
       case params[:text].split(" ").first
         ################################################################ LIST THE SERVERS STATUS ################################################
-        when 'list'
+      when 'list'
 
-          response_payload = {
-              response_type: "in_channel",
-              attachments: []
-          }
-          Server.order(:name).each do |server|
-            if server.reserved_until.present? && server.reserved_until > Time.now-6.hours
-              reserved_message = "RESERVED until #{I18n.l server.reserved_until, format: :short} for #{server.reserved_for}"
-            else
-              reserved_message = nil
-            end
-
-            message = "<https://#{server.server_url}|#{server.name}> #{reserved_message} last deployed #{time_ago_in_words(server.deploys.last.try(:created_at) || server.updated_at)} ago (#{server.deploys.last.try(:git_branch)}/#{server.deploys.last.try(:git_commit_message).to_s.truncate(25)}) by #{server.deploys.last.try(:git_user)}"
-            response_payload[:attachments] << {fallback: message, text: message, color: reserved_message ? yellow : green}
+        response_payload = {
+            response_type: "in_channel",
+            attachments:   []
+        }
+        Server.order(:name).each do |server|
+          if server.reserved_until.present? && server.reserved_until > Time.now - 6.hours
+            reserved_message = "RESERVED until #{I18n.l server.reserved_until, format: :short} for #{server.reserved_for}"
+          else
+            reserved_message = nil
           end
-          response_payload[:attachments] << {fallback: "<#{ENV['SITE_URL']}|Click to see dashboard>", text: "<#{ENV['SITE_URL']}|Click to see dashboard>", color: "#000000"}
 
-          render json: response_payload and return
+          message = "<https://#{server.server_url}|#{server.name}> #{reserved_message} last deployed #{time_ago_in_words(server.deploys.last.try(:created_at) || server.updated_at)} ago (#{server.deploys.last.try(:git_branch)}/#{server.deploys.last.try(:git_commit_message).to_s.truncate(25)}) by #{server.deploys.last.try(:git_user)}"
+          response_payload[:attachments] << {fallback: message, text: message, color: reserved_message ? yellow : green}
+        end
+        response_payload[:attachments] << {fallback: "<#{ENV['SITE_URL']}|Click to see dashboard>", text: "<#{ENV['SITE_URL']}|Click to see dashboard>", color: "#000000"}
+
+        render json: response_payload and return
 
 
         ################################################################# RESERVE A STAGING SERVER ################################################
-        when 'reserve'
-          git_remote = params[:text].split(" ").second
-          body = params[:text].split(' ')[3..-1].to_a.join(" ")
-          hours = params[:text].split(" ").third
-          user = params[:user_name]
-          if hours.present? && hours.include?("hr")
-            new_time = Time.now+(hours.to_i).hours
-          else
-            new_time = nil
-          end
+      when 'reserve'
+        git_remote = params[:text].split(" ").second
+        body       = params[:text].split(' ')[3..-1].to_a.join(" ")
+        hours      = params[:text].split(" ").third
+        user       = params[:user_name]
+        if hours.present? && hours.include?("hr")
+          new_time = Time.now + (hours.to_i).hours
+        else
+          new_time = nil
+        end
 
-          server = Server.find_by(git_remote: git_remote)
+        server = Server.find_by(git_remote: git_remote)
 
-          raise "Not found, try /staging reserve ENV_NAME(like staging3) Nhrs(like 4hrs) YOUR_COMMENT" and return unless (server && new_time)
+        raise "Not found, try /staging reserve ENV_NAME(like staging3) Nhrs(like 4hrs) YOUR_COMMENT" and return unless (server && new_time)
 
-          server.update!(reserved_until: new_time, reserved_for: "#{body} by #{user}")
+        server.update!(reserved_until: new_time, reserved_for: "#{body} by #{user}")
 
-          response_payload = {
-              response_type: "in_channel",
-              text: "I reserved that for you! Yay!"
-          }
-          render json: response_payload and return
+        response_payload = {
+            response_type: "in_channel",
+            text:          "I reserved that for you! Yay!"
+        }
+        render json: response_payload and return
 
       end
 
     end
     response_payload = {
         response_type: "in_channel",
-        text: "I didn't catch that, example commands are:
+        text:          "I didn't catch that, example commands are:
 ```list
 status
 reserve staging2 4hrs important testing thing
@@ -83,7 +83,7 @@ reserve staging2 4hrs important testing thing
 
     response_payload = {
         response_type: "in_channel",
-        text: "Dang, we got a server error.. Something about #{ex}"
+        text:          "Dang, we got a server error.. Something about #{ex}"
     }
     render json: response_payload and return
   end
@@ -135,12 +135,17 @@ reserve staging2 4hrs important testing thing
       puts 'block_actions'
       pp safe_params = block_actions_params.to_h
 
-      process_actions safe_params[:actions], safe_params.dig(:user, :id)
+      user = safe_params.dig(:user, :id)
+      process_actions safe_params[:actions], user
 
-      Slack::Api.post_response(safe_params[:response_url], {
-          replace_original: true,
-          text: 'done!'
-      })
+      if safe_params.key?(:response_url)
+        Slack::Api.post_response(safe_params[:response_url], {
+            replace_original: 'true',
+            text:             'done!'
+        })
+      elsif safe_params.dig(:view, :type) == 'home'
+        Slack::Api.views_publish(user, Slack::View.home(server_sections(user)))
+      end
 
       head :ok
     else
@@ -173,7 +178,7 @@ reserve staging2 4hrs important testing thing
       else
         Slack::View.button 'Reserve', "reserve", server.id.to_s
       end
-      last_deploy = if deploy.present?
+      last_deploy    = if deploy.present?
         [
             "Last deployed #{Slack::View.date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ({date_short_pretty} {time})")} by #{deploy.git_user}",
             "#{Slack::View.link deploy.git_url, deploy.git_branch} #{deploy.git_commit_message.truncate(100)}"
