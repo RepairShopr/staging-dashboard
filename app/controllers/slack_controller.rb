@@ -98,18 +98,40 @@ reserve staging2 4hrs important testing thing
 
     if params[:text].split(' ').include? 'debug'
       blocks << Slack::View.section(Slack::View.plain_text(params.to_json))
-
-      # XXX debug ---------------
-      response_payload = {
-          response_type: 'ephemeral',
-          blocks:        blocks
-      }
-
-      return render json: response_payload
-      # XXX debug -------------------
     end
 
-    user = params[:user_id]
+    blocks += server_sections(params[:user_id])
+
+    response_payload = {
+        response_type: 'ephemeral',
+        blocks:        blocks
+    }
+
+    render json: response_payload
+  end
+
+  def super_staging_event
+    case params[:type]
+    when 'url_verification'
+      render json: {challenge: params[:challenge]}
+    when 'event_callback'
+      event = params[:event]
+      case event[:type]
+      when 'app_home_opened'
+        Slack::Api.views_publish(event[:user], Slack::View.home(server_sections(event[:user])))
+      else
+        head :not_implemented
+      end
+
+      head :ok
+    else
+      head :ok
+    end
+  end
+
+  private
+
+  def server_sections(user)
     servers = Server.order(:name)
 
     sections = []
@@ -138,41 +160,7 @@ reserve staging2 4hrs important testing thing
         sections << Slack::View.context(Slack::View.markdown("Reserved by #{server.reserved_by} until #{Slack::View.date(server.reserved_until, '{date_short_pretty} {time}')}"))
       end
     end
-
-    blocks += sections
-
-    response_payload = {
-        response_type: 'ephemeral',
-        blocks:        blocks
-    }
-
-    render json: response_payload
   end
-
-  def super_staging_event
-    case params[:type]
-    when 'url_verification'
-      render json: {challenge: params[:challenge]}
-    when 'app_home_opened', 'event_callback'
-      blocks = []
-
-        blocks << {
-            type: 'section',
-            text: {
-                type: 'plain_text',
-                text: params.to_json
-            }
-        }
-
-      Slack::Api.views_publish('U34AGSLG5', Slack::View.home(blocks))
-
-      head :ok
-    else
-      head :ok
-    end
-  end
-
-  private
 
   def verify_super_staging
     render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == ENV['SUPER_STAGING_VERIFY_TOKEN']
