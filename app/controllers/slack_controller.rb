@@ -87,6 +87,12 @@ reserve staging2 4hrs important testing thing
   end
 
   def super_staging
+    if params[:text].split(' ').first == 'home'
+      Slack::Api.views_publish('U34AGSLG5', Slack::View.home(blocks))
+
+      return head :ok
+    end
+
     user = params[:user_id]
 
     blocks = []
@@ -107,13 +113,13 @@ reserve staging2 4hrs important testing thing
     servers.each do |server|
       deploy         = server.deploys.last
       reserve_button = if server.reserved? && server.reserved_by == user
-        slack_button 'Release', "release_#{server.id}"
+        Slack::View.button 'Release', "release_#{server.id}"
       else
-        slack_button 'Reserve', "reserve_#{server.id}"
+        Slack::View.button 'Reserve', "reserve_#{server.id}"
       end
       last_deploy = if deploy.present?
         [
-            "Last deployed #{slack_date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ({date_short_pretty} {time})")} by #{deploy.git_user}",
+            "Last deployed #{Slack::View.date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ({date_short_pretty} {time})")} by #{deploy.git_user}",
             "#{deploy.slack_git_link} #{deploy.git_commit_message.truncate(100)}"
         ].join("\n")
       end
@@ -126,15 +132,7 @@ reserve staging2 4hrs important testing thing
           accessory: reserve_button
       }
       if server.reserved?
-        sections << {
-            type:     "context",
-            elements: [
-                          {
-                              type: "mrkdwn",
-                              text: "Reserved by #{server.reserved_by} until <!date^#{server.reserved_until.to_i}^{date_short_pretty} {time}|#{server.reserved_until.to_s}>"
-                          }
-                      ]
-        }
+        sections << Slack::View.context(Slack::View.markdown("Reserved by #{server.reserved_by} until #{Slack::View.date(server.reserved_until, '{date_short_pretty} {time}')}"))
       end
     end
 
@@ -149,28 +147,31 @@ reserve staging2 4hrs important testing thing
   end
 
   def super_staging_event
-    return render json: {challenge: params[:challenge]} if params[:type] == 'url_verification'
+    case params[:type]
+    when 'url_verification'
+      render json: {challenge: params[:challenge]}
+    when 'app_home_opened', 'event_callback'
+      blocks = []
+
+        blocks << {
+            type: 'section',
+            text: {
+                type: 'plain_text',
+                text: params.to_json
+            }
+        }
+
+      Slack::Api.views_publish('U34AGSLG5', Slack::View.home(blocks))
+
+      head :ok
+    else
+      head :not_implemented
+    end
   end
 
   private
 
   def verify_super_staging
-    render json: {error: 'Invalid token'}, status: 400 unless params[:token] == SUPER_STAGING_TOKEN # XXX move to ENV
-  end
-
-  def slack_button(text, action)
-    {
-        type:  "button",
-        text:  {
-            type:  "plain_text",
-            emoji: true,
-            text:  text
-        },
-        value: action
-    }
-  end
-
-  def slack_date(datetime, format)
-    "<!date^#{datetime.to_i}^#{format}|#{datetime.to_s}>"
+    render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == SUPER_STAGING_VERIFY_TOKEN # XXX move to ENV
   end
 end
