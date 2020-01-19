@@ -141,7 +141,7 @@ reserve staging2 4hrs important testing thing
       if safe_params.key?(:response_url)
         Slack::Api.post_response(safe_params[:response_url], {
             replace_original: 'true',
-            text:             'done!'
+            blocks: [Slack::View.plain_text('foo bar')]
         })
       elsif safe_params.dig(:view, :type) == 'home'
         Slack::Api.views_publish(user, Slack::View.home(server_sections(user)))
@@ -164,12 +164,10 @@ reserve staging2 4hrs important testing thing
   end
 
   def block_actions_params
-    params.permit(:type, :response_url, actions: [:action_id, :value], user: [:id])
+    params.permit(:type, :response_url, actions: [:action_id, :value], user: [:id], view: [:type])
   end
 
-  def server_sections(user)
-    servers = Server.order(:name)
-
+  def server_sections(user, servers = Server.order(:name))
     sections = []
     servers.each do |server|
       deploy         = server.deploys.last
