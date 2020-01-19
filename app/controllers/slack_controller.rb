@@ -132,7 +132,9 @@ reserve staging2 4hrs important testing thing
   def super_staging_interactivity
     case params[:type]
     when 'block_actions'
-      safe_params = block_actions_params.to_h
+      puts 'block_actions'
+      pp safe_params = block_actions_params.to_h
+
       process_actions safe_params[:actions], safe_params.dig(:user, :id)
 
       Slack::Api.post_response(safe_params[:response_url], {
