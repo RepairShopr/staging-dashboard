@@ -70,6 +70,14 @@ module Slack
   module Api
     extend self
 
+    def post_response(response_url, payload)
+      pp response_url, payload
+      pp Faraday.post(
+          response_url,
+          payload
+      )
+    end
+
     def views_publish(user_id, view)
       pp view
       pp Faraday.post(

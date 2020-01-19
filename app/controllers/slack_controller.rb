@@ -134,6 +134,12 @@ reserve staging2 4hrs important testing thing
     when 'block_actions'
       safe_params = block_actions_params.to_h
       process_actions safe_params[:actions], safe_params.dig(:user, :id)
+
+      Slack::Api.post_response(safe_params[:response_url], {
+          replace_original: true,
+          text: 'done!'
+      })
+
       head :ok
     else
       head :not_implemented
@@ -151,7 +157,7 @@ reserve staging2 4hrs important testing thing
   end
 
   def block_actions_params
-    params.permit(:type, actions: [:action_id, :value], user: [:id])
+    params.permit(:type, :response_url, actions: [:action_id, :value], user: [:id])
   end
 
   def server_sections(user)
@@ -207,6 +213,5 @@ reserve staging2 4hrs important testing thing
 
   def parse_payload
     self.params = ActionController::Parameters.new JSON.parse params[:payload]
-    pp params.to_unsafe_h
   end
 end
