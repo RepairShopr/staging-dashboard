@@ -71,6 +71,7 @@ class Server < ApplicationRecord
   def repairshopr?
     platform.downcase.in? %w[rs repairshopr]
   end
+
   alias_method :rs?, :repairshopr?
 
   def syncro?
@@ -95,15 +96,6 @@ class Server < ApplicationRecord
   # XXX run migrations
   def reserved_by
     'U34AGSLG5' # @erik
-  end
-
-  def reserved_by_slack_user
-    return '' unless reserved?
-    if reserved_by.present?
-      "<@#{reserved_by}>"
-    else
-      ":shrug:"
-    end
   end
 end
 

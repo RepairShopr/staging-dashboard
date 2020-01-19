@@ -130,15 +130,12 @@ reserve staging2 4hrs important testing thing
   end
 
   def super_staging_interactivity
-    #pp payload = JSON.parse(params[:payload]).with_indifferent_access
-
     case params[:type]
     when 'block_actions'
       process_actions params[:actions], params.dig(:user, :id)
-      render json: {
-          replace_original: true,
-          text: "Thanks for your request, we'll process it and get back to you."
-      }
+      head :ok
+    else
+      head :not_implemented
     end
   end
 
@@ -151,14 +148,14 @@ reserve staging2 4hrs important testing thing
     servers.each do |server|
       deploy         = server.deploys.last
       reserve_button = if server.reserved? && server.reserved_by == user
-        Slack::View.button 'Release', "release_#{server.id}"
+        Slack::View.button 'Release', "release", server.id.to_s
       else
-        Slack::View.button 'Reserve', "reserve_#{server.id}"
+        Slack::View.button 'Reserve', "reserve", server.id.to_s
       end
       last_deploy = if deploy.present?
         [
             "Last deployed #{Slack::View.date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ({date_short_pretty} {time})")} by #{deploy.git_user}",
-            "#{deploy.slack_git_link} #{deploy.git_commit_message.truncate(100)}"
+            "#{Slack::View.link deploy.git_url, deploy.git_branch} #{deploy.git_commit_message.truncate(100)}"
         ].join("\n")
       end
       sections << {
@@ -170,7 +167,7 @@ reserve staging2 4hrs important testing thing
           accessory: reserve_button
       }
       if server.reserved?
-        sections << Slack::View.context(Slack::View.markdown("Reserved by #{server.reserved_by} until #{Slack::View.date(server.reserved_until, '{date_short_pretty} {time}')}"))
+        sections << Slack::View.context(Slack::View.markdown("Reserved by #{Slack::View.user_link server.reserved_by} until #{Slack::View.date(server.reserved_until, '{date_short_pretty} {time}')}"))
       end
     end
 
@@ -178,13 +175,13 @@ reserve staging2 4hrs important testing thing
   end
 
   def process_actions(actions, user)
-    actions.each do |action|
-      value = action[:value]
-      op, id =  value.split('_')
-      server = Server.find id
-      case op
+    actions.each do |action_id:, value:, **|
+      server = Server.find value
+      case action_id
       when 'reserve'
         server.update! reserved_until: 1.hour.from_now, reserved_for: user
+      when 'release'
+        server.update! reserved_until: Time.now
       end
     end
   end

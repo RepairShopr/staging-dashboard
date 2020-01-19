@@ -11,10 +11,10 @@ module Slack
 
     def section(text, accessory: nil, fields: nil)
       {
-          type: 'section',
-          text: text,
+          type:      'section',
+          text:      text,
           accessory: accessory.presence,
-          fields: fields.presence
+          fields:    fields.presence
       }.compact
     end
 
@@ -40,17 +40,30 @@ module Slack
       }
     end
 
-    def button(text, action)
+    def button(text, action, value = nil)
       {
-          type:  "button",
-          text:  plain_text(text),
-          value: action
-      }
+          type:      "button",
+          text:      plain_text(text),
+          action_id: action,
+          value:     value
+      }.compact
     end
 
     def date(datetime, format, fallback: datetime.to_s, link: nil)
       link_segment = ("^#{link}" if link.present?)
       "<!date^#{datetime.to_i}^#{format}#{link_segment}|#{fallback}>"
+    end
+
+    def user_link(user)
+      if user.present?
+        "<@#{user}>"
+      else
+        ':shrug:'
+      end
+    end
+
+    def link(url, text)
+      "<#{url.strip}|#{text.strip}>"
     end
   end
 
