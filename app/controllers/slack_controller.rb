@@ -141,7 +141,7 @@ reserve staging2 4hrs important testing thing
       if safe_params.key?(:response_url)
         Slack::Api.post_response(safe_params[:response_url], {
             replace_original: 'true',
-            blocks: [Slack::View.plain_text('foo bar')]
+            blocks: [Slack::View.section(Slack::View.plain_text('foo bar'))]
         })
       elsif safe_params.dig(:view, :type) == 'home'
         Slack::Api.views_publish(user, Slack::View.home(server_sections(user)))
