@@ -88,35 +88,26 @@ reserve staging2 4hrs important testing thing
 
   def super_staging
     if params[:text].split(' ').first == 'home'
+      blocks = Slack::View.section(Slack::View.plain_text(params.to_json))
       Slack::Api.views_publish('U34AGSLG5', Slack::View.home(blocks))
-
-      return head :ok
     end
-
-    user = params[:user_id]
 
     blocks = []
 
     if params[:text].split(' ').include? 'debug'
-      blocks << {
-          type: 'section',
-          text: {
-              type: 'plain_text',
-              text: params.to_json
-          }
+      blocks << Slack::View.section(Slack::View.plain_text(params.to_json))
+
+      # XXX debug ---------------
+      response_payload = {
+          response_type: 'ephemeral',
+          blocks:        blocks
       }
+
+      return render json: response_payload
+      # XXX debug -------------------
     end
 
-    # XXX debug ---------------
-    response_payload = {
-        response_type: 'ephemeral',
-        blocks:        blocks
-    }
-
-    render json: response_payload
-    return
-    # XXX debug -------------------
-
+    user = params[:user_id]
     servers = Server.order(:name)
 
     sections = []
