@@ -81,22 +81,6 @@ class Server < ApplicationRecord
   def rsyn?
     repairshopr? || syncro?
   end
-
-  # XXX run migrations
-  def platform
-    if name.include?('Kabuto')
-      'kabuto'
-    elsif name.start_with?('RS')
-      'rs'
-    elsif name.start_with?('Syncro')
-      'syncro'
-    end
-  end
-
-  # XXX run migrations
-  def reserved_by
-    'U34AGSLG5' # @erik
-  end
 end
 
 #------------------------------------------------------------------------------

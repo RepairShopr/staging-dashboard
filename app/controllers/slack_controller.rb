@@ -182,6 +182,8 @@ reserve staging2 4hrs important testing thing
         server.update! reserved_until: 1.hour.from_now, reserved_for: user
       when 'release'
         server.update! reserved_until: Time.now
+      else
+        raise "Unknown action: #{action_id}"
       end
     end
   end
@@ -192,6 +194,6 @@ reserve staging2 4hrs important testing thing
 
   def parse_payload
     self.params = ActionController::Parameters.new JSON.parse params[:payload]
-    pp params
+    pp params.to_unsafe_h
   end
 end
