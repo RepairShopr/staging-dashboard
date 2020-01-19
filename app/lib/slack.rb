@@ -74,7 +74,8 @@ module Slack
       pp response_url, payload
       pp Faraday.post(
           response_url,
-          payload
+          payload.to_json,
+          "Content-Type" => "application/json"
       )
     end
 
