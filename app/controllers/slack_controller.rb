@@ -132,7 +132,7 @@ reserve staging2 4hrs important testing thing
   def super_staging_interactivity
     case params[:type]
     when 'block_actions'
-      process_actions params[:actions], params.dig(:user, :id)
+      process_actions params[:actions].to_unsafe_h, params.dig(:user, :id)
       head :ok
     else
       head :not_implemented
