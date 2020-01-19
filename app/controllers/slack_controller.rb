@@ -152,10 +152,14 @@ reserve staging2 4hrs important testing thing
 
       case safe_params.dig(:view, :callback_id)
       when 'do_reserve'
+        puts 'do_reserve'
         response_metadata = JSON.parse(safe_params.dig(:view, :private_metadata)).with_indifferent_access
         server            = Server.find(response_metadata[:server_id])
         purpose           = safe_params.dig(:view, :state, :values, :reserve_purpose, :reserve_purpose, :value)
         hours             = safe_params.dig(:view, :state, :values, :reserve_hours, :reserve_hours, :value)
+        pp response_metadata
+        pp purpose
+        pp hours
         server.reserve!(purpose, hours, user)
 
         respond_to_actions(user, **response_metadata.to_options)
