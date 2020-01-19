@@ -1,6 +1,6 @@
 class SlackController < ActionController::Base
   include ActionView::Helpers::DateHelper
-  before_action :verify_super_staging, only: %i[super_staging super_staging_event]
+  #before_action :verify_super_staging, only: %i[super_staging super_staging_event]
 
   def staging
 
@@ -106,6 +106,16 @@ reserve staging2 4hrs important testing thing
           }
       }
     end
+
+    # XXX debug ---------------
+    response_payload = {
+        response_type: 'ephemeral',
+        blocks:        blocks
+    }
+
+    render json: response_payload
+    return
+    # XXX debug -------------------
 
     servers = Server.order(:name)
 
