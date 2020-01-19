@@ -116,6 +116,7 @@ module Slack
     end
 
     def views_open(trigger_id, view, private_metadata: nil)
+      private_metadata = 'foo bar'
       pp view
       pp private_metadata
       pp Faraday.post(
@@ -126,7 +127,7 @@ module Slack
               view:             view.as_json
           }.compact.to_json,
           'Authorization' => "Bearer #{ENV['SUPER_STAGING_ACCESS_TOKEN']}",
-          "Content-Type" => "application/json"
+          "Content-Type"  => "application/json"
       )
     end
 
@@ -139,7 +140,7 @@ module Slack
               view:    view.as_json
           }.compact.to_json,
           'Authorization' => "Bearer #{ENV['SUPER_STAGING_ACCESS_TOKEN']}",
-          "Content-Type" => "application/json"
+          "Content-Type"  => "application/json"
       )
     end
   end

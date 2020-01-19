@@ -279,6 +279,7 @@ reserve staging2 4hrs important testing thing
   end
 
   def verify_super_staging
+    # TODO validate with signature instead https://api.slack.com/docs/verifying-requests-from-slack#a_recipe_for_security
     render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == ENV['SUPER_STAGING_VERIFY_TOKEN']
   end
 
