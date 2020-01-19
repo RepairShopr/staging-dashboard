@@ -113,9 +113,9 @@ reserve staging2 4hrs important testing thing
   def super_staging_event
     case params[:type]
     when 'url_verification'
-      render json: {challenge: params[:challenge]}
+      render json: {challenge: challenge_params[:challenge]}
     when 'event_callback'
-      event = params[:event]
+      event = event_callback_params[:event]
       case event[:type]
       when 'app_home_opened'
         Slack::Api.views_publish(event[:user], Slack::View.home(server_sections(event[:user])))
@@ -132,7 +132,7 @@ reserve staging2 4hrs important testing thing
   def super_staging_interactivity
     case params[:type]
     when 'block_actions'
-      process_actions params[:actions].to_unsafe_h, params.dig(:user, :id)
+      process_actions block_actions_params[:actions], block_actions_params.dig(:user, :id)
       head :ok
     else
       head :not_implemented
@@ -140,6 +140,18 @@ reserve staging2 4hrs important testing thing
   end
 
   private
+
+  def challenge_params
+    params.permit(:type, :challenge)
+  end
+
+  def event_callback_params
+    params.permit(:type, event: [:type, :user])
+  end
+
+  def block_actions_params
+    params.permit(:type, actions: [:action_id, :value], user: [:id])
+  end
 
   def server_sections(user)
     servers = Server.order(:name)
