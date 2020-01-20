@@ -1,14 +1,41 @@
 class SuperStaging
   include ActionView::Helpers::DateHelper
-  attr_reader :params, :user, :updated_servers
+  attr_reader :params, :updated_servers
+  attr_accessor :user
 
   def initialize(params)
-    @params          = params.to_unsafe_h
-    @user            = SuperStaging.extract_user(@params)
+    @params          = safe_params(params)
+    @user            = extract_user
     @updated_servers = {}
   end
 
-  def self.extract_user(params)
+  def safe_params(params)
+    case params[:type]
+    when 'url_verification'
+      params.permit(:type, :challenge)
+    when 'event_callback'
+      params.permit(:type, event: [:type, :user])
+    when 'block_actions'
+      # response_url is for block actions from messages
+      # view.type is for block actions from the home view
+      params.permit(:type, :response_url, :trigger_id, view: [:type], actions: [:action_id, :value], user: [:id])
+    when 'view_submission'
+      params.permit(:type,
+                    view: [:callback_id,
+                           :private_metadata, # JSON-encoded string with "type", "server", and optionally "response_url"
+                           state: {
+                               values: {
+                                   # block_id => action_id => "value" => value
+                                   reserve_purpose: {reserve_purpose: [:value]},
+                                   reserve_hours:   {reserve_hours: [:value]}
+                               }}],
+                    user: [:id])
+    else # Slash command doesn't have 'type'
+      params.permit(:user_id, :text)
+    end
+  end
+
+  def extract_user
     case params[:type]
     when 'event_callback'
       params.dig(:event, :user)
@@ -22,7 +49,7 @@ class SuperStaging
   def process_block_actions!
     trigger_id = params[:trigger_id]
     actions    = params[:actions].map do |action|
-      action.to_options.slice(:action_id, :value)
+      action.to_h.to_options.slice(:action_id, :value)
     end
 
     actions.each do |action_id:, value:|
@@ -106,9 +133,9 @@ class SuperStaging
 
   def server_blocks(server, include_button: true)
     [
-        server_status_block(server, user: user, include_button: include_button),
+        server_status_block(server, include_button: include_button),
         server_reserved_block(server),
-        server_action_result_block(server, updated_servers)
+        server_action_result_block(server)
     ].compact
   end
 
@@ -120,7 +147,7 @@ class SuperStaging
     end
   end
 
-  def server_status_block(server, user: nil, include_button: true)
+  def server_status_block(server, include_button: true)
     deploy                = server.deploys.last
 
     last_reservation_text = "Currently reserved for #{server.reserved_for}" if server.reserved?
@@ -154,7 +181,7 @@ class SuperStaging
     end
   end
 
-  def server_action_result_block(server, updated_servers)
+  def server_action_result_block(server)
     if updated_servers.key? server.id.to_s
       message = case updated_servers[server.id.to_s]
       when 'do_reserve'

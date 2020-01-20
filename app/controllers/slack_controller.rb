@@ -93,11 +93,13 @@ reserve staging2 4hrs important testing thing
     text = params[:text]
     args = text.split(' ')
 
-    public = args.include? 'public'
+    public              = args.include? 'public'
+
+    @super_staging.user = nil if public
 
     blocks = [
         (Slack::View.section(Slack::View.plain_text(params.to_json)) if args.include? 'debug'),
-        *@super_staging.servers_blocks(include_button: !public)
+        *@super_staging.servers_blocks
     ].compact
 
     response_payload = {
