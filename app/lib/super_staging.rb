@@ -1,11 +1,10 @@
 class SuperStaging
   include ActionView::Helpers::DateHelper
-  attr_reader :params, :updated_servers
-  attr_accessor :user
+  attr_reader :params, :user, :updated_servers
 
   def initialize(params)
     @params          = safe_params(params)
-    @user            = extract_user
+    @_user           = @user = extract_user
     @updated_servers = {}
   end
 
@@ -103,7 +102,7 @@ class SuperStaging
 
     case response_metadata[:type]
     when 'message'
-      @user = nil unless response_metadata[:is_ephemeral]
+      self.public = !response_metadata[:is_ephemeral]
       Slack::Api.post_response(response_metadata[:response_url], {
           replace_original: 'true',
           blocks:           servers_blocks
@@ -112,6 +111,14 @@ class SuperStaging
       publish_home!
     else
       # do nothing
+    end
+  end
+
+  def public=(value)
+    if value
+      @user  = nil
+    else
+      @user = @_user
     end
   end
 

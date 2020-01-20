@@ -1,6 +1,10 @@
 class Server < ApplicationRecord
   has_many :deploys, class_name: "ServerDeploy"
 
+  def self.find_by_alias(aliaz)
+    where(name: aliaz).or(where(git_remote: aliaz)).or(where(abbreviation: aliaz)).first
+  end
+
   def thumbnail_image
     return nil #this is breaking?
     if !Rails.env.production?
@@ -93,19 +97,23 @@ end
 #------------------------------------------------------------------------------
 # Server
 #
-# Name           SQL Type             Null    Default Primary
-# -------------- -------------------- ------- ------- -------
-# id             INTEGER              false           true   
-# name           varchar              true            false  
-# description    varchar              true            false  
-# logo_url       varchar              true            false  
-# status         varchar              true            false  
-# reserved_until datetime             true            false  
-# reserved_for   varchar              true            false  
-# slack_channel  varchar              true            false  
-# created_at     datetime             false           false  
-# updated_at     datetime             false           false  
-# server_url     varchar              true            false  
-# git_remote     varchar              true            false  
+# Name            SQL Type             Null    Default Primary
+# --------------- -------------------- ------- ------- -------
+# id              INTEGER              false           true   
+# name            varchar              true            false  
+# description     varchar              true            false  
+# logo_url        varchar              true            false  
+# status          varchar              true            false  
+# reserved_until  datetime             true            false  
+# reserved_for    varchar              true            false  
+# slack_channel   varchar              true            false  
+# created_at      datetime             false           false  
+# updated_at      datetime             false           false  
+# server_url      varchar              true            false  
+# git_remote      varchar              true            false  
+# jira_iframe_url varchar              true            false  
+# platform        varchar              true            false  
+# reserved_by     varchar              true            false  
+# abbreviation    varchar              true            false  
 #
 #------------------------------------------------------------------------------

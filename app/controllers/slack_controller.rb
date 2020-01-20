@@ -93,14 +93,34 @@ reserve staging2 4hrs important testing thing
     text = params[:text]
     args = text.split(' ')
 
-    public              = args.include? 'public'
+    debug   = !!args.delete('debug')
+    public  = !!args.delete('public')
+    op      = args.shift || 'list'
 
-    @super_staging.user = nil if public
+    blocks = []
 
-    blocks = [
-        (Slack::View.section(Slack::View.plain_text(params.to_json)) if args.include? 'debug'),
-        *@super_staging.servers_blocks
-    ].compact
+    blocks << Slack::View.section(Slack::View.plain_text(params.to_json)) if debug
+
+    case op
+    when 'status'
+      server_alias = args.shift
+
+      if server_alias.present?
+        server = Server.find_by_alias(server_alias.downcase)
+        if server.present?
+          @super_staging.public = true
+          blocks += @super_staging.server_blocks(server, include_button: false)
+        else
+          blocks << Slack::View.section(Slack::View.plain_text("Error: Unable to find server: '#{server_alias}'"))
+        end
+      else
+        blocks << Slack::View.section(Slack::View.plain_text("Error: 'status' command requires server name"))
+      end
+
+    when 'list'
+      @super_staging.public = public
+      blocks += @super_staging.servers_blocks
+    end
 
     response_payload = {
         response_type: (public ? 'in_channel' : 'ephemeral'),
