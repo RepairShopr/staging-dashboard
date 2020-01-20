@@ -18,11 +18,11 @@ class SuperStaging
     when 'block_actions'
       # response_url is for block actions from messages
       # view.type is for block actions from the home view
-      params.permit(:type, :response_url, :trigger_id, view: [:type], actions: [:action_id, :value], user: [:id])
+      params.permit(:type, :response_url, :trigger_id, container: [:type, :is_ephemeral], view: [:type], actions: [:action_id, :value], user: [:id])
     when 'view_submission'
       params.permit(:type,
                     view: [:callback_id,
-                           :private_metadata, # JSON-encoded string with "type", "server", and optionally "response_url"
+                           :private_metadata, # JSON-encoded string with "type", "server", and optionally "response_url", "is_ephemeral"
                            state: {
                                values: {
                                    # block_id => action_id => "value" => value
@@ -103,6 +103,7 @@ class SuperStaging
 
     case response_metadata[:type]
     when 'message'
+      @user = nil unless response_metadata[:is_ephemeral]
       Slack::Api.post_response(response_metadata[:response_url], {
           replace_original: 'true',
           blocks:           servers_blocks
@@ -118,6 +119,7 @@ class SuperStaging
     @_response_metadata ||= if params.key?(:response_url)
       {
           type:         'message',
+          is_ephemeral: params.dig(:container, :is_ephemeral),
           response_url: params[:response_url]
       }
     elsif params.dig(:view, :type) == 'home'
