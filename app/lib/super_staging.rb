@@ -3,8 +3,8 @@ class SuperStaging
   attr_reader :params, :user, :updated_servers
 
   def initialize(params)
-    @params          = params
-    @user            = SuperStaging.extract_user(params)
+    @params          = params.to_unsafe_h
+    @user            = SuperStaging.extract_user(@params)
     @updated_servers = {}
   end
 
