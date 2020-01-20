@@ -1,4 +1,5 @@
 class SuperStaging
+  include ActionView::Helpers::DateHelper
   attr_reader :params, :user, :updated_servers
 
   def initialize(params)
