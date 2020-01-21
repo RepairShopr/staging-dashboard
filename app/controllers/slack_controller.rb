@@ -128,7 +128,7 @@ release ss1
       if server_alias.present?
         server = Server.find_by_alias(server_alias.downcase)
         if server.present?
-          @super_staging.public = true
+          @super_staging.public = response_type.public?
           blocks                += @super_staging.server_blocks(server, include_button: false)
         else
           response_type = Slack::ResponseType::PRIVATE
@@ -139,14 +139,33 @@ release ss1
         blocks << Slack::View.section(Slack::View.plain_text("Error: 'status' command requires server name"))
       end
 
-    when 'list'
+    when 'release'
       response_type ||= Slack::ResponseType::PRIVATE
-      @super_staging.public = public
+      server_alias  = args.shift
+
+      if server_alias.present?
+        server = Server.find_by_alias(server_alias.downcase)
+        if server.present?
+          server.release!
+          @super_staging.public = response_type.public?
+          blocks                += @super_staging.server_blocks(server, include_button: false)
+        else
+          response_type = Slack::ResponseType::PRIVATE
+          blocks << Slack::View.section(Slack::View.plain_text("Error: Unable to find server: '#{server_alias}'"))
+        end
+      else
+        response_type = Slack::ResponseType::PRIVATE
+        blocks << Slack::View.section(Slack::View.plain_text("Error: 'release' command requires server name"))
+      end
+
+    when 'list'
+      response_type         ||= Slack::ResponseType::PRIVATE
+      @super_staging.public = response_type.public?
       blocks                += @super_staging.servers_blocks
     end
 
     response_payload = {
-        response_type: response_type || Slack::ResponseType::PRIVATE,
+        response_type: (response_type || Slack::ResponseType::PRIVATE).to_s,
         blocks:        blocks
     }
 

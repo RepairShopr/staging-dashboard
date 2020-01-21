@@ -1,7 +1,25 @@
 module Slack
   module ResponseType
-    PUBLIC = 'in_channel'
-    PRIVATE = 'ephemeral'
+    PUBLIC = ResponseType.new(true).freeze
+    PRIVATE = ResponseType.new(false).freeze
+
+    private class ResponseType
+      def initialize(public)
+        @public = public
+      end
+
+      def public?
+        @public
+      end
+
+      def private?
+        !public?
+      end
+
+      def to_s
+        @public ? 'in_channel' : 'ephemeral'
+      end
+    end
   end
 
   module View
