@@ -109,9 +109,12 @@ release ss1
     text = params[:text]
     args = text.split(' ')
 
-    debug  = !!args.delete('debug')
-    public = !!args.delete('public')
-    op     = args.shift || 'list'
+    response_type = nil
+    response_type = Slack::ResponseType::PUBLIC if args.delete('public')
+    response_type = Slack::ResponseType::PRIVATE if args.delete('private')
+
+    debug = !!args.delete('debug')
+    op    = args.shift || 'list'
 
     blocks = []
 
@@ -119,7 +122,8 @@ release ss1
 
     case op
     when 'status'
-      server_alias = args.shift
+      response_type ||= Slack::ResponseType::PUBLIC
+      server_alias  = args.shift
 
       if server_alias.present?
         server = Server.find_by_alias(server_alias.downcase)
@@ -127,19 +131,22 @@ release ss1
           @super_staging.public = true
           blocks                += @super_staging.server_blocks(server, include_button: false)
         else
+          response_type = Slack::ResponseType::PRIVATE
           blocks << Slack::View.section(Slack::View.plain_text("Error: Unable to find server: '#{server_alias}'"))
         end
       else
+        response_type = Slack::ResponseType::PRIVATE
         blocks << Slack::View.section(Slack::View.plain_text("Error: 'status' command requires server name"))
       end
 
     when 'list'
+      response_type ||= Slack::ResponseType::PRIVATE
       @super_staging.public = public
       blocks                += @super_staging.servers_blocks
     end
 
     response_payload = {
-        response_type: (public ? 'in_channel' : 'ephemeral'),
+        response_type: response_type || Slack::ResponseType::PRIVATE,
         blocks:        blocks
     }
 

@@ -1,4 +1,9 @@
 module Slack
+  module ResponseType
+    PUBLIC = 'in_channel'
+    PRIVATE = 'ephemeral'
+  end
+
   module View
     extend self
 
