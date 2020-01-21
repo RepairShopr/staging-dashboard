@@ -121,6 +121,19 @@ release ss1
     blocks << Slack::View.section(Slack::View.plain_text(params.to_json)) if debug
 
     case op
+    when 'help'
+      response_type ||= Slack::ResponseType::PUBLIC
+      blocks << Slack::View.section(Slack::View.markdown(<<MRKDWN
+Available commands:
+```
+help
+list
+status <server>
+release <server>
+```
+MRKDWN
+      ))
+
     when 'status'
       response_type ||= Slack::ResponseType::PUBLIC
       server_alias  = args.shift
