@@ -1,9 +1,9 @@
 module Slack
   module ResponseType
-    PUBLIC = ResponseType.new(true).freeze
-    PRIVATE = ResponseType.new(false).freeze
+    PUBLIC = PrivateResponseType.new(true).freeze
+    PRIVATE = PrivateResponseType.new(false).freeze
 
-    private class ResponseType
+    private class PrivateResponseType
       def initialize(public)
         @public = public
       end
