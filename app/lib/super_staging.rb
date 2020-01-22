@@ -317,7 +317,7 @@ MRKDWN
   end
 
   def visibility_explanation_block
-    Slack::View.section(Slack::View.markdown("You can add a visibility modifier to any command to change the response type. \"public\" means the response will be visible to everyone in the channel. \"private\" means the response will only be visible to you."))
+    Slack::View.section(Slack::View.markdown("You can add a visibility modifier to any command to change the response type. \"public\" means the response will be visible to everyone in the channel. \"private\" means the response will only be visible to you. For most commands, the visibility modifier can be anywhere in the command, but for \"reserve\", it must be before the \"reserve\" keyword."))
   end
 
   def help_blocks(help_cmd)
