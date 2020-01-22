@@ -110,9 +110,21 @@ release ss1
     text    = params[:text]
     args    = text.split(' ')
 
+    # Don't search for public/private after "reserve" command (in case part of purpose)
+    head_args, tail_args = args.split(SuperStaging::SlashCommand::RESERVE)
+
     response_type = nil
-    response_type = Slack::ResponseType::PUBLIC if args.delete('public')
-    response_type = Slack::ResponseType::PRIVATE if args.delete('private')
+    response_type = Slack::ResponseType::PUBLIC if head_args.delete('public')
+    response_type = Slack::ResponseType::PRIVATE if head_args.delete('private')
+
+    # Restore args with potentially modified head_args
+    args = if tail_args.nil?
+      # "reserve" was not in args
+      head_args
+    else
+      # "reserve" was in args so put it back with potentially modified head_args
+      head_args + [SuperStaging::SlashCommand::RESERVE] + tail_args
+    end
 
     debug     = !!args.delete('debug')
     op        = args.shift
@@ -126,6 +138,7 @@ release ss1
     blocks << Slack::View.section(Slack::View.plain_text(params.to_json)) if debug
 
     new_blocks, response_type = @super_staging.process_slash_command!(op, args, response_type)
+
     blocks += new_blocks
 
     # TODO add button to show help
