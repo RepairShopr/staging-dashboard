@@ -152,11 +152,11 @@ class SuperStaging
         blocks += yield(server)
       else
         response_type = Slack::ResponseType::PRIVATE
-        blocks << Slack::View.section(Slack::View.markdown("*Error:* Unable to find server: '#{server_alias}'."))
+        blocks << Slack::View.section(Slack::View.markdown(":x: *Error:* Unable to find server: '#{server_alias}'."))
       end
     else
       response_type = Slack::ResponseType::PRIVATE
-      blocks << Slack::View.section(Slack::View.markdown("*Error:* `#{cmd}` command requires server name."))
+      blocks << Slack::View.section(Slack::View.markdown(":x: *Error:* `#{cmd}` command requires server name."))
       blocks += help_blocks(cmd)
     end
 
@@ -294,7 +294,7 @@ class SuperStaging
   end
 
   def usage_block(help_cmd)
-    Slack::View.section(Slack::View.markdown("usage: `#{slash_command} [public|private] #{SlashCommand::COMMANDS.dig(help_cmd, :usage)}`"))
+    Slack::View.section(Slack::View.markdown("*Usage:* `#{slash_command} [public|private] #{SlashCommand::COMMANDS.dig(help_cmd, :usage)}`"))
   end
 
   def description_block(help_cmd)
