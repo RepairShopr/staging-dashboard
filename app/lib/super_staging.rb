@@ -157,7 +157,7 @@ class SuperStaging
     else
       response_type = Slack::ResponseType::PRIVATE
       blocks << Slack::View.section(Slack::View.markdown("*Error:* `#{cmd}` command requires server name."))
-      blocks << help_blocks(cmd)
+      blocks += help_blocks(cmd)
     end
 
     [blocks, response_type]

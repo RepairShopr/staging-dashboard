@@ -105,6 +105,7 @@ release ss1
     render json: response_payload
   end
 
+  # TODO make bot respond to messages that mention @super_staging the same as a slash command (this should work in threads)
   def slash_super_staging
     command = params[:command]
     text    = params[:text]
