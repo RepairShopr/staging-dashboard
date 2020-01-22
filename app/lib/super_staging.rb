@@ -212,8 +212,9 @@ class SuperStaging
           elsif hours_index > 0
             # This arg was just "hours" without the number so check the previous arg
             hours_index -= 1
+            hour_part   = args[hours_index]
 
-            if /\A\d+\z/.match?(args[hours_index])
+            if /\A\d+\z/.match?(hour_part)
               arg_length = 2
               hours      = hour_part.to_i
             end
