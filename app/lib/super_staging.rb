@@ -293,8 +293,12 @@ class SuperStaging
     Slack::View.context(Slack::View.markdown("Default visibility: #{default_visibility.name}")) if default_visibility
   end
 
+  def usage(help_cmd)
+    "#{slash_command} [public|private] #{SlashCommand::COMMANDS.dig(help_cmd, :usage)}"
+  end
+
   def usage_block(help_cmd)
-    Slack::View.section(Slack::View.markdown("*Usage:* `#{slash_command} [public|private] #{SlashCommand::COMMANDS.dig(help_cmd, :usage)}`"))
+    Slack::View.section(Slack::View.markdown("*Usage:* `#{usage(help_cmd)}`"))
   end
 
   def description_block(help_cmd)
@@ -304,11 +308,10 @@ class SuperStaging
   end
 
   def available_commands_block
-    # TODO make commands links to "help <command>"
     Slack::View.section(Slack::View.markdown(<<MRKDWN))
 Available commands:
 ```
-#{SlashCommand::COMMANDS.map { |_, x| x[:usage] }.join("\n")}
+#{SlashCommand::COMMANDS.keys.map { |cmd| usage(cmd) }.join("\n")}
 ```
 MRKDWN
   end
