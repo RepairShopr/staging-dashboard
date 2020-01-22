@@ -194,51 +194,49 @@ class SuperStaging
       blocks      += servers_blocks
 
     when SlashCommand::RESERVE
-      server_alias = args.shift
-      if server_alias.present?
-        server = Server.find_by_alias(server_alias.downcase)
-        if server.present?
-          server.release!
-          updated_servers[server.id.to_s] = Action::RELEASE
-          self.public                     = response_type.public?
-          blocks                          += server_blocks(server, include_button: false)
-        else
-          response_type = Slack::ResponseType::PRIVATE
-          blocks << Slack::View.section(Slack::View.markdown("*Error:* Unable to find server: '#{server_alias}'."))
+      use_default_hours = false
+
+      reserve_blocks, response_type = with_server!(cmd, args, response_type) do |server|
+        hours       = nil # Default duration
+        hours_index = args.find_index do |arg|
+          SlashCommand::HOURS_REGEX.match?(arg)
         end
-      else
-        response_type = Slack::ResponseType::PRIVATE
-        blocks << Slack::View.section(Slack::View.markdown("*Error:* `#{cmd}` command requires server name."))
-        blocks << help_blocks('release')
-      end
+        if hours_index.present?
+          arg_length = 0
 
-      hours       = 1 # Default duration
-      hours_index = args.find_index do |arg|
-        SlashCommand::HOURS_REGEX.match?(arg)
-      end
-      if hours_index.present?
-        arg_length = 0
-
-        # There must be a match because this was found by checking `match?`
-        hour_part = SlashCommand::HOURS_REGEX.match(args[hours_index])[:hours]
-        if hour_part.present?
-          arg_length = 1
-          hours      = hour_part.to_i
-        elsif hours_index > 0
-          # This arg was just "hours" without the number so check the previous arg
-          hours_index -= 1
-
-          if /\A\d+\z/.match?(args[hours_index])
-            arg_length = 2
+          # There must be a match because this was found by checking `match?`
+          hour_part = SlashCommand::HOURS_REGEX.match(args[hours_index])[:hours]
+          if hour_part.present?
+            arg_length = 1
             hours      = hour_part.to_i
+          elsif hours_index > 0
+            # This arg was just "hours" without the number so check the previous arg
+            hours_index -= 1
+
+            if /\A\d+\z/.match?(args[hours_index])
+              arg_length = 2
+              hours      = hour_part.to_i
+            end
           end
+
+          arg_length.times { args.delete_at(hours_index) }
         end
 
-        arg_length.times { args.delete_at(hours_index) }
+        purpose = args.join(' ')
+
+        use_default_hours = hours.nil?
+        hours             = 1 if use_default_hours
+
+        server.reserve!(purpose, hours, user)
+
+        updated_servers[server.id.to_s] = Action::DO_RESERVE
+        self.public                     = response_type.public?
+        server_blocks(server, include_button: false)
       end
 
-      purpose = args.join(' ')
-      # TODO add reserve command
+      blocks += reserve_blocks
+
+      blocks << Slack::View.context(Slack::View.markdown(":warning: Unable to parse hours to used default of 1 hour duration.")) if use_default_hours
 
     else
       # If the first arg feels like a server alias, run the "status" command on it
