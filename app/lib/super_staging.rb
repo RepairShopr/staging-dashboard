@@ -1,11 +1,56 @@
 class SuperStaging
   include ActionView::Helpers::DateHelper
-  attr_reader :params, :user, :updated_servers
+  attr_reader :params, :user, :updated_servers, :slash_command
+
+  module Action
+    DO_RESERVE = 'do_reserve'
+    RESERVE    = 'reserve'
+    RELEASE    = 'release'
+  end
+
+  module SlashCommand
+    HELP    = 'help'
+    LIST    = 'list'
+    STATUS  = 'status'
+    RELEASE = 'release'
+    RESERVE = 'reserve'
+
+    HOURS_REGEX = /\A(?<hours>\d*)h(?:ou)?rs?\z/i
+
+    COMMANDS = {
+        HELP    => {
+            default_visibility: Slack::ResponseType::PRIVATE,
+            usage:              "#{HELP} [<command>]",
+            description:        ->(super_staging) { "Display help info. See `#{super_staging.slash_command} #{HELP} <command>` to read about specific subcommand." }
+        },
+        LIST    => {
+            default_visibility: Slack::ResponseType::PRIVATE,
+            usage:              LIST,
+            description:        "List status of all staging servers. Includes \"Reserve\" buttons. If visibility is private, \"Release\" button will be displayed for servers that are currently reserved by you."
+        },
+        STATUS  => {
+            default_visibility: Slack::ResponseType::PUBLIC,
+            usage:              "#{STATUS} <server>",
+            description:        "Show the status of a specific server. Does not include \"Reserve\" or \"Release\" button. You can use either the `git_alias` or `abbreviation` to specify the server."
+        },
+        RELEASE => {
+            default_visibility: Slack::ResponseType::PRIVATE,
+            usage:              "#{RELEASE} <server>",
+            description:        "Release a server. You can use either the `git_alias` or `abbreviation` to specify the server."
+        },
+        RESERVE => {
+            default_visibility: Slack::ResponseType::PRIVATE,
+            usage:              "#{RESERVE} <server> <N>[hr|hrs|hour|hours] <purpose>",
+            description:        "Reserve a server. You can use either the `git_alias` or `abbreviation` to specify the server. Specify the duration of the reservation in hours.\nExample: ```#{RESERVE} ss1 2hrs Test a thing.```"
+        }
+    }.with_indifferent_access.freeze
+  end
 
   def initialize(params)
     @params          = safe_params(params)
     @_user           = @user = extract_user
     @updated_servers = {}
+    @slash_command   = @params[:command]
   end
 
   def safe_params(params)
@@ -30,7 +75,7 @@ class SuperStaging
                                }}],
                     user: [:id])
     else # Slash command doesn't have 'type'
-      params.permit(:user_id, :text)
+      params.permit(:user_id, :text, :command)
     end
   end
 
@@ -55,20 +100,21 @@ class SuperStaging
       server = Server.find value
 
       case action_id
-      when 'reserve'
+      when Action::RESERVE
         private_metadata = response_metadata.merge(server_id: server.id).to_json
+        # TODO make inputs optional
         Slack::Api.views_open(trigger_id, Slack::View.modal(
             "Reserve #{server.name}",
             [
                 Slack::View.plain_text_input('Purpose', block_id: 'reserve_purpose', action_id: 'reserve_purpose', placeholder: "Why are you reserving #{server.name}?"),
                 Slack::View.plain_text_input('Hours', block_id: 'reserve_hours', action_id: 'reserve_hours', placeholder: 'Just enter an integer')
             ],
-            callback_id:      'do_reserve',
+            callback_id:      Action::DO_RESERVE,
             private_metadata: private_metadata,
             submit:           'Reserve',
             close:            'Cancel'
         ))
-      when 'release'
+      when Action::RELEASE
         server.release!
 
         updated_servers[value] = action_id
@@ -82,15 +128,124 @@ class SuperStaging
 
   def process_view_submission!
     case params.dig(:view, :callback_id)
-    when 'do_reserve'
+    when Action::DO_RESERVE
       @_response_metadata = JSON.parse(params.dig(:view, :private_metadata)).with_indifferent_access
       server              = Server.find(response_metadata[:server_id])
       purpose             = params.dig(:view, :state, :values, :reserve_purpose, :reserve_purpose, :value)
       hours               = params.dig(:view, :state, :values, :reserve_hours, :reserve_hours, :value)
+      # TODO validate "hours"
       server.reserve!(purpose, hours, user)
+      updated_servers[server.id.to_s] = Action::DO_RESERVE
 
       respond_to_actions!
     end
+  end
+
+  def with_server!(cmd, args, response_type)
+    blocks = []
+
+    server_alias = args.shift
+
+    if server_alias.present?
+      server = Server.find_by_alias(server_alias.downcase)
+      if server.present?
+        blocks += yield(server)
+      else
+        response_type = Slack::ResponseType::PRIVATE
+        blocks << Slack::View.section(Slack::View.markdown("*Error:* Unable to find server: '#{server_alias}'."))
+      end
+    else
+      response_type = Slack::ResponseType::PRIVATE
+      blocks << Slack::View.section(Slack::View.markdown("*Error:* `#{cmd}` command requires server name."))
+      blocks << help_blocks(cmd)
+    end
+
+    [blocks, response_type]
+  end
+
+  def process_slash_command!(cmd, args, response_type)
+    blocks = []
+
+    case cmd
+    when SlashCommand::HELP
+      help_cmd = args.shift
+      blocks   += help_blocks(help_cmd)
+
+    when SlashCommand::STATUS
+      status_blocks, response_type = with_server!(cmd, args, response_type) do |server|
+        self.public = response_type.public?
+        server_blocks(server, include_button: false)
+      end
+
+      blocks += status_blocks
+
+    when SlashCommand::RELEASE
+      release_blocks, response_type = with_server!(cmd, args, response_type) do |server|
+        server.release!
+        updated_servers[server.id.to_s] = Action::RELEASE
+        self.public                     = response_type.public?
+        server_blocks(server, include_button: false)
+      end
+
+      blocks += release_blocks
+
+    when SlashCommand::LIST
+      self.public = response_type.public?
+      blocks      += servers_blocks
+
+    when SlashCommand::RESERVE
+      server_alias = args.shift
+      if server_alias.present?
+        server = Server.find_by_alias(server_alias.downcase)
+        if server.present?
+          server.release!
+          updated_servers[server.id.to_s] = Action::RELEASE
+          self.public                     = response_type.public?
+          blocks                          += server_blocks(server, include_button: false)
+        else
+          response_type = Slack::ResponseType::PRIVATE
+          blocks << Slack::View.section(Slack::View.markdown("*Error:* Unable to find server: '#{server_alias}'."))
+        end
+      else
+        response_type = Slack::ResponseType::PRIVATE
+        blocks << Slack::View.section(Slack::View.markdown("*Error:* `#{cmd}` command requires server name."))
+        blocks << help_blocks('release')
+      end
+
+      hours       = 1 # Default duration
+      hours_index = args.find_index do |arg|
+        SlashCommand::HOURS_REGEX.match?(arg)
+      end
+      if hours_index.present?
+        arg_length = 0
+
+        # There must be a match because this was found by checking `match?`
+        hour_part = SlashCommand::HOURS_REGEX.match(args[hours_index])[:hours]
+        if hour_part.present?
+          arg_length = 1
+          hours      = hour_part.to_i
+        elsif hours_index > 0
+          # This arg was just "hours" without the number so check the previous arg
+          hours_index -= 1
+
+          if /\A\d+\z/.match?(args[hours_index])
+            arg_length = 2
+            hours      = hour_part.to_i
+          end
+        end
+
+        arg_length.times { args.delete_at(hours_index) }
+      end
+
+      purpose = args.join(' ')
+      # TODO add reserve command
+
+    else
+      # If the first arg feels like a server alias, run the "status" command on it
+      return process_slash_command!('status', [cmd, *args], response_type) if cmd.present? && Server.by_alias(cmd.downcase).exists?
+    end
+
+    [blocks, response_type]
   end
 
   def publish_home!
@@ -116,7 +271,7 @@ class SuperStaging
 
   def public=(value)
     if value
-      @user  = nil
+      @user = nil
     else
       @user = @_user
     end
@@ -132,6 +287,54 @@ class SuperStaging
     elsif params.dig(:view, :type) == 'home'
       {type: 'home'}
     end
+  end
+
+  def default_visibility_block(help_cmd)
+    default_visibility = SlashCommand::COMMANDS.dig(help_cmd, :default_visibility)
+    Slack::View.context(Slack::View.markdown("Default visibility: #{default_visibility.name}")) if default_visibility
+  end
+
+  def usage_block(help_cmd)
+    Slack::View.section(Slack::View.markdown("usage: `#{slash_command} [public|private] #{SlashCommand::COMMANDS.dig(help_cmd, :usage)}`"))
+  end
+
+  def description_block(help_cmd)
+    description = SlashCommand::COMMANDS.dig(help_cmd, :description)
+    description = description.call(self) if description.respond_to?(:call)
+    Slack::View.section(Slack::View.markdown(description))
+  end
+
+  def available_commands_block
+    # TODO make commands links to "help <command>"
+    Slack::View.section(Slack::View.markdown(<<MRKDWN))
+Available commands:
+```
+#{SlashCommand::COMMANDS.map { |_, x| x[:usage] }.join("\n")}
+```
+MRKDWN
+  end
+
+  def visibility_explanation_block
+    Slack::View.section(Slack::View.markdown("You can add a visibility modifier to any command to change the response type. \"public\" means the response will be visible to everyone in the channel. \"private\" means the response will only be visible to you."))
+  end
+
+  def help_blocks(help_cmd)
+    blocks = []
+
+    case help_cmd
+    when 'help', 'list', 'status', 'release'
+      blocks << usage_block(help_cmd)
+      blocks << description_block(help_cmd)
+      blocks << available_commands_block if help_cmd == 'help'
+
+    else
+      blocks << available_commands_block
+    end
+
+    blocks << visibility_explanation_block
+    blocks << default_visibility_block(help_cmd)
+
+    blocks.compact
   end
 
   def servers_blocks(servers = Server.order(:name), include_button: true)
@@ -150,9 +353,9 @@ class SuperStaging
 
   def server_quick_action_button(server, user = nil)
     if server.reserved? && server.reserved_by == user && user.present?
-      Slack::View.button 'Release', "release", server.id.to_s
+      Slack::View.button 'Release', Action::RELEASE, server.id.to_s
     else
-      Slack::View.button 'Reserve', "reserve", server.id.to_s
+      Slack::View.button 'Reserve', Action::RESERVE, server.id.to_s
     end
   end
 
@@ -173,7 +376,7 @@ class SuperStaging
         text:      {
             type: "mrkdwn",
             text: [
-                      "#{server.status_emoji}#{server.platform_emoji} *#{server.name} (#{server.git_remote})*",
+                      "#{server.status_emoji}#{server.platform_emoji} *#{server.name} (#{server.git_remote}/#{server.abbreviation})*",
                       last_reservation_text,
                       last_deploy_text
                   ].compact.join("\n")
@@ -193,9 +396,9 @@ class SuperStaging
   def server_action_result_block(server)
     if updated_servers.key? server.id.to_s
       message = case updated_servers[server.id.to_s]
-      when 'do_reserve'
+      when Action::DO_RESERVE
         ":white_check_mark: Successfully reserved!"
-      when 'release'
+      when Action::RELEASE
         ":white_check_mark: Successfully released!"
       end
 

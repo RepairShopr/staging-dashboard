@@ -1,8 +1,12 @@
 class Server < ApplicationRecord
   has_many :deploys, class_name: "ServerDeploy"
 
+  scope :by_alias, ->(aliaz) do
+    where(git_remote: aliaz).or(where(abbreviation: aliaz))
+  end
+
   def self.find_by_alias(aliaz)
-    where(name: aliaz).or(where(git_remote: aliaz)).or(where(abbreviation: aliaz)).first
+    by_alias(aliaz).first
   end
 
   def thumbnail_image

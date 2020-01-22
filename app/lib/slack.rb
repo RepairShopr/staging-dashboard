@@ -18,6 +18,11 @@ module Slack
       def to_s
         @public ? 'in_channel' : 'ephemeral'
       end
+      alias_method :response_type, :to_s
+
+      def name
+        @public ? 'public' : 'private'
+      end
     end
 
     public

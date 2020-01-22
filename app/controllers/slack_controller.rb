@@ -54,7 +54,7 @@ class SlackController < ActionController::Base
         purpose     = "#{body} by #{user}"
         valid_hours = hours.present? && hours.include?('hr')
 
-        server = Server.find_by_alias(git_remote)
+        server = Server.find_by_alias(git_remote.downcase)
 
         raise "Not found, try /staging reserve ENV_NAME(like staging3) Nhrs(like 4hrs) YOUR_COMMENT" unless (server && valid_hours)
 
@@ -69,7 +69,7 @@ class SlackController < ActionController::Base
         ################################################################# RELEASE/UN-RESERVE A STAGING SERVER ################################################
       when 'release'
         git_remote = args.shift
-        server     = Server.find_by_alias(git_remote)
+        server     = Server.find_by_alias(git_remote.downcase)
 
         raise "Not found, try /staging release ENV_NAME(like staging3)" unless server
 
@@ -106,79 +106,33 @@ release ss1
   end
 
   def slash_super_staging
-    text = params[:text]
-    args = text.split(' ')
+    command = params[:command]
+    text    = params[:text]
+    args    = text.split(' ')
 
     response_type = nil
     response_type = Slack::ResponseType::PUBLIC if args.delete('public')
     response_type = Slack::ResponseType::PRIVATE if args.delete('private')
 
-    debug = !!args.delete('debug')
-    op    = args.shift || 'list'
+    debug     = !!args.delete('debug')
+    op        = args.shift
+    show_help = op.nil?
+    op        ||= 'list'
+
+    response_type ||= SuperStaging::SlashCommand::COMMANDS.dig(op, :default_visibility) || Slack::ResponseType::PRIVATE
 
     blocks = []
 
     blocks << Slack::View.section(Slack::View.plain_text(params.to_json)) if debug
 
-    case op
-    when 'help'
-      response_type ||= Slack::ResponseType::PUBLIC
-      blocks << Slack::View.section(Slack::View.markdown(<<MRKDWN
-Available commands:
-```
-help
-list
-status <server>
-release <server>
-```
-MRKDWN
-      ))
+    new_blocks, response_type = @super_staging.process_slash_command!(op, args, response_type)
+    blocks += new_blocks
 
-    when 'status'
-      response_type ||= Slack::ResponseType::PUBLIC
-      server_alias  = args.shift
-
-      if server_alias.present?
-        server = Server.find_by_alias(server_alias.downcase)
-        if server.present?
-          @super_staging.public = response_type.public?
-          blocks                += @super_staging.server_blocks(server, include_button: false)
-        else
-          response_type = Slack::ResponseType::PRIVATE
-          blocks << Slack::View.section(Slack::View.plain_text("Error: Unable to find server: '#{server_alias}'"))
-        end
-      else
-        response_type = Slack::ResponseType::PRIVATE
-        blocks << Slack::View.section(Slack::View.plain_text("Error: 'status' command requires server name"))
-      end
-
-    when 'release'
-      response_type ||= Slack::ResponseType::PRIVATE
-      server_alias  = args.shift
-
-      if server_alias.present?
-        server = Server.find_by_alias(server_alias.downcase)
-        if server.present?
-          server.release!
-          @super_staging.public = response_type.public?
-          blocks                += @super_staging.server_blocks(server, include_button: false)
-        else
-          response_type = Slack::ResponseType::PRIVATE
-          blocks << Slack::View.section(Slack::View.plain_text("Error: Unable to find server: '#{server_alias}'"))
-        end
-      else
-        response_type = Slack::ResponseType::PRIVATE
-        blocks << Slack::View.section(Slack::View.plain_text("Error: 'release' command requires server name"))
-      end
-
-    when 'list'
-      response_type         ||= Slack::ResponseType::PRIVATE
-      @super_staging.public = response_type.public?
-      blocks                += @super_staging.servers_blocks
-    end
+    # TODO add button to show help
+    blocks << Slack::View.section(Slack::View.markdown("For more information try `#{command} help`.")) if show_help
 
     response_payload = {
-        response_type: (response_type || Slack::ResponseType::PRIVATE).to_s,
+        response_type: response_type.to_s,
         blocks:        blocks
     }
 
