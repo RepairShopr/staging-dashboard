@@ -368,7 +368,7 @@ MRKDWN
 
     last_deploy_text      = [
         "Last deployed #{Slack::View.date(deploy.created_at, "#{time_ago_in_words deploy.created_at} ago ({date_short_pretty} {time})")} by #{deploy.git_user}",
-        "#{Slack::View.link deploy.git_url, deploy.git_branch} #{deploy.git_commit_message.lines.first.truncate(100).strip}"
+        "#{Slack::View.link deploy.git_url, deploy.git_branch} #{deploy.git_commit_message.lines.first.to_s.truncate(100).strip}"
     ].join("\n") if deploy.present?
 
     reserve_button        = server_quick_action_button(server, user) if include_button
