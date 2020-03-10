@@ -355,9 +355,9 @@ MRKDWN
 
   def server_quick_action_button(server, user = nil)
     if server.reserved? && server.reserved_by == user && user.present?
-      Slack::View.button 'Release', Action::RELEASE, server.id.to_s
+      Slack::View.button "Release #{server.abbreviation}".strip, Action::RELEASE, server.id.to_s
     else
-      Slack::View.button 'Reserve', Action::RESERVE, server.id.to_s
+      Slack::View.button "Reserve #{server.abbreviation}".strip, Action::RESERVE, server.id.to_s
     end
   end
 
