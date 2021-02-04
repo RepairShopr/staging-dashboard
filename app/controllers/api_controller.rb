@@ -27,17 +27,17 @@ class ApiController < ActionController::Base
     commit         = params.dig("data", "slug", "commit")
     branch         = Github.get_branch_from_commit(commit)
 
-    log_params = {
+    heroku_log_params = {
       git_remote: environment, git_user: user_deploying, git_commit_message: log_message, commit_hash: commit, git_branch: branch
     }
 
     server = Server.find_by(git_remote: environment)
     if server.present?
       last_deploy_commit = server.deploys.last.try(:commit_hash)
-      server.deploys.create_from_params(server: server, params: log_params) unless last_deploy_commit == commit # prevent dupes from normal deploys
+      server.deploys.create_from_params(server: server, params: heroku_log_params) unless last_deploy_commit == commit # prevent dupes from normal deploys
       return render json: {success: true}
     else
-      return render json: {success: false}, status: :unprocessable_entity
+      return render json: {success: false} #heroku will continue to retry for 72 hours unless we return 2XX response.
     end
   rescue => ex
     return render json: {success: false, error_message: ex, backtrace: ex.backtrace}, status: :internal_server_error
