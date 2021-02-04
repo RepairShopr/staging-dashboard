@@ -27,3 +27,6 @@ chromedriver
 database.yml.*local
 .*.sw*
 public/uploads/account_rmm_setting/**
+
+# Ignore master key for decrypting credentials and more.
+/config/master.key
