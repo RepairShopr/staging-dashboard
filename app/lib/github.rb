@@ -22,6 +22,23 @@ module Github
       make_request(path, :get, body)
     end
 
+    def compare_changes(commit_or_branch)
+      get_path("repos/RepairShopr/RepairShopr/compare/master...#{commit_or_branch}")
+    end
+
+    def compare_changes_summary(commit_or_branch)
+      changes = compare_changes(commit_or_branch)
+      commits = changes.dig('commits')
+      summary = ""
+
+      commits.each do |commit|
+        name = commit.dig('commit', 'author', 'name')
+        message = commit.dig('commit', 'message').strip
+        summary << "#{name}: #{message}\n"
+      end
+      return summary
+    end
+
     def get_commit(commit)
       get_path("repos/RepairShopr/RepairShopr/commits/#{commit}")
     end
@@ -30,7 +47,11 @@ module Github
       get_path("repos/RepairShopr/RepairShopr/branches?per_page=100&page=#{page}")
     end
 
-    def get_branch_from_commit(commit)
+    def get_branch(branch_name)
+      get_path("repos/RepairShopr/RepairShopr/branches/#{branch_name}")
+    end
+
+    def get_branch_name_from_commit(commit)
       page = 1
       loop do
         branches = get_branches(page)
