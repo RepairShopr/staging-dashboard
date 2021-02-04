@@ -22,8 +22,8 @@ module Github
       make_request(path, :get, body)
     end
 
-    def compare_changes(commit_or_branch)
-      get_path("repos/RepairShopr/RepairShopr/compare/master...#{commit_or_branch}")
+    def compare_changes(commit_or_branch, base = 'master')
+      get_path("repos/RepairShopr/RepairShopr/compare/#{base}...#{commit_or_branch}")
     end
 
     def compare_changes_summary(commit_or_branch)
