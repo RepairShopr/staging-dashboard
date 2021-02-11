@@ -1,5 +1,5 @@
 class ApiController < ActionController::Base
-  protect_from_forgery :except => [:deploy_log]
+  protect_from_forgery :except => [:deploy_log, :heroku_deploy_log_hook]
   before_action :set_default_response_format
 
 
@@ -17,8 +17,32 @@ class ApiController < ActionController::Base
     return render json: {success: false, error_message: ex, backtrace: ex.backtrace}, status: :internal_server_error
   end
 
+  def heroku_deploy_log_hook
+    build_status = params.dig("data", "status")
+    return render json: { success: true, status: build_status } unless build_status == "succeeded" # only succeeded has slug info we want, skip other statuses
 
+    environment    = params.dig("data", "app", "name")
+    user_deploying = params.dig("actor", "email").split("@").first.strip
+    commit         = params.dig("data", "slug", "commit")
+    branch         = Github.get_branch_name_from_commit(commit)
+    log_message    = params.dig("data", "slug", "commit_description") # always seems to be "" when QA deploys
+    log_message    = log_message.present? ? log_message : Github.compare_changes_summary(branch || commit)
 
+    heroku_log_params = {
+      git_remote: environment, git_user: user_deploying, git_commit_message: log_message, commit_hash: commit, git_branch: branch
+    }
+
+    server = Server.find_by(git_remote: environment)
+    if server.present?
+      last_deploy_commit = server.deploys.last.try(:commit_hash)
+      server.deploys.create_from_params(server: server, params: heroku_log_params) unless last_deploy_commit == commit # prevent dupes from normal deploys
+      return render json: {success: true}
+    else
+      return render json: {success: false} # heroku will continue to retry for 72 hours unless we return 2XX response.
+    end
+  rescue => ex
+    return render json: {success: false, error_message: ex, backtrace: ex.backtrace}, status: :internal_server_error
+  end
 
   private
 
