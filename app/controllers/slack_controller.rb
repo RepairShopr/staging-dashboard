@@ -4,7 +4,7 @@ class SlackController < ActionController::Base
   before_action :parse_payload, only: %i[super_staging_interactivity]
   before_action :verify_super_staging, only: %i[slash_super_staging super_staging_event super_staging_interactivity]
   before_action :initialize_super_staging, only: %i[slash_super_staging super_staging_event super_staging_interactivity]
-  skip_before_action :verify_authenticity_token
+  skip_before_action :verify_authenticity_tokenr
 
   def staging
 
@@ -185,7 +185,7 @@ release ss1
 
   def verify_super_staging
     # TODO validate with signature instead https://api.slack.com/docs/verifying-requests-from-slack#a_recipe_for_security
-    render json: {error: 'Invalid token'}, status: :unauthorized unless params[:token] == ENV['SUPER_STAGING_VERIFY_TOKEN']
+    render json: {error: 'Invalid token'}, status: :unauthorized unless ActiveSupport::SecurityUtils.secure_compare(params[:token], ENV['SUPER_STAGING_VERIFY_TOKEN'])
   end
 
   def parse_payload
