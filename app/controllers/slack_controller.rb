@@ -13,7 +13,7 @@ class SlackController < ActionController::Base
     #  when you first test it out after "installing" it - just watch the payload it sends you to get the TOKEN and team domain for the authZ
 
     if params[:team_domain].present? && params[:token].present?
-      raise "BadAuth(tail logs to find it)" unless params[:team_domain] == ENV['SLACK_TEAM_DOMAIN'] && params[:token] == ENV['SLACK_TOKEN']
+      raise "BadAuth(tail logs to find it)" unless ActiveSupport::SecurityUtils.secure_compare(params[:team_domain], ENV['SLACK_TEAM_DOMAIN']) && ActiveSupport::SecurityUtils.secure_compare(params[:token], ENV['SLACK_TOKEN'])
 
       yellow = "#f89406"
       white  = "#ffffff"
