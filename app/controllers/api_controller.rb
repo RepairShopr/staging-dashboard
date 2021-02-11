@@ -18,8 +18,8 @@ class ApiController < ActionController::Base
   end
 
   def heroku_deploy_log_hook
-    build_action = params.dig("action")
-    return render json: {success: true} unless build_action == "update" # only update action has slug info we want, skip other actions
+    build_status = params.dig("data", "status")
+    return render json: { success: true, status: build_status } unless build_status == "succeeded" # only succeeded has slug info we want, skip other statuses
 
     environment    = params.dig("data", "app", "name")
     user_deploying = params.dig("actor", "email").split("@").first.strip
