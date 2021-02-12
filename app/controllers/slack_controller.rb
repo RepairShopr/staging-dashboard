@@ -4,7 +4,7 @@ class SlackController < ActionController::Base
   before_action :parse_payload, only: %i[super_staging_interactivity]
   before_action :verify_super_staging, only: %i[slash_super_staging super_staging_event super_staging_interactivity]
   before_action :initialize_super_staging, only: %i[slash_super_staging super_staging_event super_staging_interactivity]
-  skip_before_action :verify_authenticity_tokenr
+  skip_before_action :verify_authenticity_token
 
   def staging
 
