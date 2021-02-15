@@ -33,6 +33,7 @@ class ApiController < ActionController::Base
     }
 
     server = Server.find_by(git_remote: environment)
+    server ||= Server.find_by(git_remote: environment.split('-').last)
     if server.present?
       last_deploy_commit = server.deploys.last.try(:commit_hash)
       server.deploys.create_from_params(server: server, params: heroku_log_params) unless last_deploy_commit == commit # prevent dupes from normal deploys
